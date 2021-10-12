@@ -48,16 +48,16 @@ pub enum Error {
     VersionedTransaction(#[source] iroha_version::error::Error),
     /// Failed to accept transaction
     #[error("Failed to accept transaction")]
-    AcceptTransaction(eyre::Error),
+    AcceptTransaction(#[source] eyre::Error),
     /// Failed to execute query
     #[error("Failed to execute query")]
-    ExecuteQuery(eyre::Error),
+    ExecuteQuery(#[source] eyre::Error),
     /// Failed to validate query
     #[error("Failed to validate query")]
-    ValidateQuery(eyre::Error),
+    ValidateQuery(#[source] eyre::Error),
     /// Failed to get pending transaction
     #[error("Failed to get pending transactions")]
-    RequestPendingTransactions(eyre::Error),
+    RequestPendingTransactions(#[source] eyre::Error),
     /// Failed to decode pending transactions from leader
     #[error("Failed to decode pending transactions from leader")]
     DecodeRequestPendingTransactions(#[source] iroha_version::error::Error),
@@ -80,16 +80,21 @@ impl Reply for Error {
         const fn status_code(err: &Error) -> StatusCode {
             use Error::*;
 
-            match *err {
-                ExecuteQuery(_)
+            match err {
+                VersionedTransaction(_)
+                | AcceptTransaction(_)
+                | ExecuteQuery(_)
+                | ValidateQuery(_)
                 | RequestPendingTransactions(_)
                 | DecodeRequestPendingTransactions(_)
-                | PushIntoQueue(_)
-                | EncodePendingTransactions(_) => StatusCode::INTERNAL_SERVER_ERROR,
-                TxTooBig | VersionedTransaction(_) | AcceptTransaction(_) | ValidateQuery(_) => {
-                    StatusCode::BAD_REQUEST
-                }
+                | EncodePendingTransactions(_)
+                | TxTooBig => StatusCode::BAD_REQUEST,
                 Config(_) => StatusCode::NOT_FOUND,
+                PushIntoQueue(err) => match **err {
+                    queue::Error::Full => StatusCode::INTERNAL_SERVER_ERROR,
+                    queue::Error::SignatureCondition(_) => StatusCode::UNAUTHORIZED,
+                    _ => StatusCode::BAD_REQUEST,
+                },
             }
         }
 
