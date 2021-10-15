@@ -32,7 +32,7 @@ pub enum Error {
     #[error("Failed to assert type")]
     Type(#[source] TypeError),
     /// Failed due to math exception
-    #[error("Math error occured")]
+    #[error("Math error occurred")]
     Math(#[source] MathError),
     /// Some other error happened
     #[error("Some other error happened")]

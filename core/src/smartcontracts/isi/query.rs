@@ -2,7 +2,7 @@
 
 use std::{convert::TryFrom, error::Error as StdError, fmt};
 
-use eyre::{eyre, Error, Result};
+use eyre::{eyre, Context, Error, Result};
 use iroha_data_model::{prelude::*, query};
 use iroha_derive::Io;
 use iroha_version::{scale::DecodeVersioned, Version};
@@ -59,10 +59,14 @@ impl TryFrom<SignedQueryRequest> for VerifiedQueryRequest {
     type Error = Error;
 
     fn try_from(query: SignedQueryRequest) -> Result<Self> {
-        query.signature.verify(query.hash().as_ref()).map(|_| Self {
-            payload: query.payload,
-            signature: query.signature,
-        })
+        query
+            .signature
+            .verify(query.hash().as_ref())
+            .map(|_| Self {
+                payload: query.payload,
+                signature: query.signature,
+            })
+            .wrap_err("Failed to verify signature.")
     }
 }
 
@@ -120,7 +124,7 @@ pub enum AcceptQueryError {
     DecodeVersionedSignedQuery(#[source] Box<iroha_version::error::Error>),
     /// Failed to verify query request
     #[error("Failed to verify query request")]
-    VerifyQuery(eyre::Error),
+    VerifyQuery(#[source] eyre::Error),
 }
 
 impl AcceptQueryError {
