@@ -135,4 +135,30 @@ Metrics::Metrics(std::string const &listen_addr,
             number_of_peers.Increment(peers_diff);
             domains_number.Increment(domains_diff);
           });
+
+  /////////////////////////////
+
+  auto &number_of_pending_mst_batches =
+      BuildGauge()
+          .Name("number_of_pending_mst_batches")
+          .Help("Number of pending MST batches")
+          .Register(*registry_)
+          .Add({});
+
+  auto &number_of_pending_mst_transactions_gauge =
+      BuildGauge()
+          .Name("number_of_pending_mst_transactions")
+          .Help("Number of pending MST transactions")
+          .Register(*registry_);
+  auto &number_of_pending_mst_transactions =
+      number_of_pending_mst_transactions_gauge.Add({});
+
+  mst_subscriber_ = SubscriberCreator<bool, MstMetrics>::template create<
+      EventTypes::kOnMstMetrics>(
+      SubscriptionEngineHandlers::kMetrics,
+      [&, wregistry = std::weak_ptr<Registry>(registry_)](auto &,
+                                                          MstMetrics mstmetr) {
+        number_of_pending_mst_batches.Set(std::get<0>(mstmetr));
+        number_of_pending_mst_transactions.Set(std::get<1>(mstmetr));
+      });
 }
