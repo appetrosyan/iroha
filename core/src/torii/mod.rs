@@ -152,24 +152,24 @@ impl<W: WorldTrait> Torii<W> {
         })
     }
 
+    /// Fixing status code for custom rejection, because of argument parsing
+    #[allow(clippy::unused_async)]
+    async fn recover_arg_parse(err: Rejection) -> Result<impl Reply, Rejection> {
+        if let Some(err) = err.find::<AcceptQueryError>() {
+            return Ok(reply::with_status(err.to_string(), err.status_code()));
+        }
+        if let Some(err) = err.find::<iroha_version::error::Error>() {
+            return Ok(reply::with_status(err.to_string(), err.status_code()));
+        }
+        Err(err)
+    }
+
     /// To handle incoming requests `Torii` should be started first.
     ///
     /// # Errors
     /// Can fail due to listening to network or if http server fails
     #[iroha_futures::telemetry_future]
     pub async fn start(self) -> eyre::Result<()> {
-        /// Fixing status code for custom rejection, because of argument parsing
-        #[allow(clippy::unused_async)]
-        async fn recover_arg_parse(err: Rejection) -> Result<impl Reply, Rejection> {
-            if let Some(err) = err.find::<AcceptQueryError>() {
-                return Ok(reply::with_status(err.to_string(), err.status_code()));
-            }
-            if let Some(err) = err.find::<iroha_version::error::Error>() {
-                return Ok(reply::with_status(err.to_string(), err.status_code()));
-            }
-            Err(err)
-        }
-
         let state = self.create_state();
 
         let get_router = warp::path(uri::HEALTH)
@@ -220,7 +220,7 @@ impl<W: WorldTrait> Torii<W> {
             .or(warp::get().and(get_router))
             .or(ws_router)
             .with(warp::trace::request())
-            .recover(recover_arg_parse);
+            .recover(Torii::<W>::recover_arg_parse);
 
         match self.config.torii_api_url.to_socket_addrs() {
             Ok(mut i) => {
@@ -549,5 +549,173 @@ mod tests {
         let query_result = handle_queries(state.clone(), Default::default(), query).await;
 
         assert!(matches!(query_result, Err(Error::ValidateQuery(_))));
+    }
+
+    struct AssertSet {
+        account: AccountId,
+        keys: Option<KeyPair>,
+        instructions: Vec<Instruction>,
+    }
+
+    impl AssertSet {
+        fn new() -> Self {
+            Self {
+                account: AccountId::new("alice", "wonderland"),
+                keys: None,
+                instructions: Vec::new(),
+            }
+        }
+        fn account(mut self, account: AccountId) -> Self {
+            self.account = account;
+            self
+        }
+        fn keys(mut self, keys: KeyPair) -> Self {
+            self.keys = Some(keys);
+            self
+        }
+        fn given(mut self, instruction: Instruction) -> Self {
+            self.instructions.push(instruction);
+            self
+        }
+        fn query(self, query: QueryBox) -> AssertReady {
+            let Self {
+                account,
+                keys,
+                instructions,
+            } = self;
+            AssertReady {
+                account,
+                keys,
+                instructions,
+                query,
+                status: None,
+                hints: Vec::new(),
+            }
+        }
+    }
+
+    struct AssertReady {
+        account: AccountId,
+        keys: Option<KeyPair>,
+        instructions: Vec<Instruction>,
+        query: QueryBox,
+        status: Option<StatusCode>,
+        hints: Vec<&'static str>,
+    }
+
+    impl AssertReady {
+        fn status(mut self, status: StatusCode) -> Self {
+            self.status = Some(status);
+            self
+        }
+        fn hint(mut self, hint: &'static str) -> Self {
+            self.hints.push(hint);
+            self
+        }
+        async fn assert(self) {
+            use iroha_version::scale::EncodeVersioned;
+
+            use crate::smartcontracts::Execute;
+
+            let (torii, keys) = create_torii();
+            let state = torii.create_state();
+
+            for instruction in self.instructions {
+                instruction
+                    .execute(self.account.clone(), &state.wsv)
+                    .unwrap();
+            }
+
+            let post_router = endpoint3(
+                handle_queries,
+                warp::path(uri::QUERY)
+                    .and(add_state(Arc::clone(&state)))
+                    .and(paginate())
+                    .and(body::query()),
+            );
+            let router = warp::post()
+                .and(post_router)
+                .recover(Torii::<World>::recover_arg_parse);
+
+            let req: VersionedSignedQueryRequest = QueryRequest::new(self.query, self.account)
+                .sign(&self.keys.unwrap_or(keys))
+                .expect("Failed to sign query with keys")
+                .into();
+
+            let res = warp::test::request()
+                .method("POST")
+                .path("/query")
+                .body(req.encode_versioned().unwrap())
+                .reply(&router)
+                .await;
+
+            if let Some(status) = self.status {
+                assert_eq!(res.status(), status);
+            }
+            let body = String::from_utf8(res.body().to_vec()).unwrap();
+            dbg!(&body);
+            assert!(self.hints.iter().all(|hint| body.contains(hint)));
+        }
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn unregistered_account() {
+        AssertSet::new()
+            .account(AccountId::new("bob", "wonderland"))
+            .query(QueryBox::FindAllDomains(Default::default()))
+            .status(StatusCode::BAD_REQUEST)
+            .hint("account")
+            .hint("bob")
+            .hint("wonderland")
+            .assert()
+            .await
+    }
+    #[tokio::test(flavor = "multi_thread")]
+    async fn register_asset() {
+        AssertSet::new()
+            .given(Instruction::Register(RegisterBox::new(
+                AssetDefinition::new(
+                    "carrot#wonderland".parse().unwrap(),
+                    AssetValueType::Quantity,
+                ),
+            )))
+            .query(QueryBox::FindAllAssetsDefinitions(Default::default()))
+            .status(StatusCode::OK)
+            .hint("carrot")
+            .hint("wonderland")
+            .assert()
+            .await
+    }
+    #[tokio::test(flavor = "multi_thread")]
+    async fn asset_get_ok() {
+        AssertSet::new()
+            .given(Instruction::Register(RegisterBox::new(Domain::new(
+                "desert",
+            ))))
+            .given(Instruction::Register(RegisterBox::new(
+                NewAccount::with_signatory(
+                    AccountId::new("alice", "desert"),
+                    "ed0120a753146e75b910ae5e2994dc8adea9e7d87e5d53024cfa310ce992f17106f92c".parse().unwrap(),
+                )
+            )))
+            .given(Instruction::Register(RegisterBox::new(
+                AssetDefinition::new(
+                    "rose#desert".parse().unwrap(),
+                    AssetValueType::Quantity,
+                ),
+            )))
+            .given(Instruction::Mint(MintBox::new(
+                Value::U32(99),
+                AssetId::from_names("rose", "desert", "alice", "desert"),
+            )))
+            .query(QueryBox::FindAssetById(FindAssetById::new(
+                AssetId::from_names("rose", "desert", "alice", "desert"),
+            )))
+            .status(StatusCode::OK)
+            // FIXME here fails
+            .hint("Quantity")
+            .hint("99")
+            .assert()
+            .await
     }
 }
