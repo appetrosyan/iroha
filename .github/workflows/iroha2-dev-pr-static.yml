@@ -89,6 +89,6 @@ jobs:
             clang \
             llvm-dev
       - name: Install nightly for rustfmt
-        run: rustup install --profile default nightly #-2021-03-24
+        run: rustup install --profile default nightly-2021-03-24
       - name: Format check
-        run: cargo +nightly fmt --all -- --check
+        run: cargo +nightly-2021-03-24 fmt --all -- --check
