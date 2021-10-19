@@ -7,6 +7,7 @@ on:
 env:
   CARGO_TERM_COLOR: always
 
+jobs:
   test:
     runs-on: [self-hosted, Linux] #ubuntu-latest
     container: rust:1.55-buster
