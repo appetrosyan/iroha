@@ -1,4 +1,6 @@
-//! Structs related to topology of the network - order and predefined roles of peers.
+//! Structs related to topology of the network — order and predefined
+//! roles of peers. For more information, consult the [Iroha 2
+//! white-paper](https://iroha-test.readthedocs.io/en/iroha2-dev/iroha_2_whitepaper/).
 
 use std::{collections::HashSet, iter};
 
@@ -12,7 +14,7 @@ use rand::{rngs::StdRng, seq::SliceRandom, SeedableRng};
 use super::view_change::{self, ProofChain as ViewChangeProofs};
 use crate::block::{EmptyChainHash, VersionedCommittedBlock, VersionedValidBlock};
 
-/// Sorts peers based on the `hash`.
+/// Sort peers by `hash`.
 pub fn sort_peers_by_hash(
     peers: Vec<PeerId>,
     hash: &HashOf<VersionedCommittedBlock>,
@@ -20,7 +22,7 @@ pub fn sort_peers_by_hash(
     sort_peers_by_hash_and_counter(peers, hash, 0)
 }
 
-/// Sorts peers based on the `hash` and `counter` combined as a seed.
+/// Sort peers by `hash` using `counter` as a seed.
 pub fn sort_peers_by_hash_and_counter(
     mut peers: Vec<PeerId>,
     hash: &HashOf<VersionedCommittedBlock>,
@@ -60,12 +62,13 @@ macro_rules! field_is_some_or_err {
     };
 }
 
-/// Alternative builder for genesis case.
+/// Alternative builder for genesis.
 /// Can set custom topology roles.
 #[derive(Clone, Default, Debug)]
 pub struct GenesisBuilder {
     leader: Option<PeerId>,
 
+    // TODO: consider giving these sets more descriptive names:
     set_a: Option<HashSet<PeerId>>,
 
     set_b: Option<HashSet<PeerId>>,
@@ -123,7 +126,7 @@ impl GenesisBuilder {
         let max_faults = (set_a.len() - 1_usize) / 2_usize;
         if set_b.len() < max_faults {
             return Err(eyre!(
-                    "Not enough peers to be Byzantine fault tolerant. Expected least {} peers in `set_b`, got {}",
+                    "Not enough peers to be Byzantine fault tolerant. Expected at least {} peers in `set_b`, got {}",
                     max_faults,
                     set_b.len(),
                 ));
@@ -143,7 +146,7 @@ impl GenesisBuilder {
     }
 }
 
-/// Builder of [`Topology`] struct.
+/// Builder for [`Topology`].
 #[derive(Clone, Debug, Default)]
 pub struct Builder {
     /// Current order of peers. The roles of peers are defined based on this order.
@@ -219,7 +222,10 @@ impl Builder {
     }
 }
 
-/// Network topology - order of peers that defines their roles in this round.
+/// Network topology — order of peers that defines their roles in this
+/// round. For more information read the [following
+/// section](https://iroha-test.readthedocs.io/en/iroha2-dev/iroha_2_whitepaper/#network-topology)
+/// from the Iroha 2 white-paper.
 #[derive(Clone, Debug, Encode, Decode, IntoSchema)]
 pub struct Topology {
     /// Current order of peers. The roles of peers are defined based on this order.
@@ -340,7 +346,8 @@ impl Topology {
     /// Verifies that this `message` was signed by the `signature` of a peer with specified `role`.
     ///
     /// # Errors
-    /// Fails if there are no such peer with this key and if signature verification fails
+    /// - if there is no peer matching the `signature.public_key`.
+    /// - if signature verification fails
     pub fn verify_signature_with_role(
         &self,
         signature: &SignatureOf<VersionedTransaction>,
@@ -398,6 +405,7 @@ impl Topology {
     }
 
     /// Number of view changes.
+    #[inline]
     pub const fn view_change_proofs(&self) -> &ViewChangeProofs {
         &self.view_change_proofs
     }

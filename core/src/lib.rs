@@ -42,7 +42,7 @@ use crate::{
     wsv::WorldTrait,
 };
 
-/// The interval at which sumeragi checks if there are tx in the `queue`.
+/// Interval between `Sumeragi` checks for `tx` in the [`Queue`].
 pub const TX_RETRIEVAL_INTERVAL: Duration = Duration::from_millis(100);
 
 /// Specialized type of Iroha Network
@@ -59,8 +59,10 @@ pub enum NetworkMessage {
     Health,
 }
 
-/// Iroha is an [Orchestrator](https://en.wikipedia.org/wiki/Orchestration_%28computing%29) of the
-/// system. It configures, coordinates and manages transactions and queries processing, work of consensus and storage.
+/// Iroha is an
+/// [Orchestrator](https://en.wikipedia.org/wiki/Orchestration_%28computing%29)
+/// of the system. It configures, coordinates and manages transactions
+/// and queries processing, work of consensus and storage.
 pub struct Iroha<
     W = World,
     G = GenesisNetwork,
@@ -76,9 +78,9 @@ pub struct Iroha<
 {
     /// World state view
     pub wsv: Arc<WorldStateView<W>>,
-    /// Queue of transactions
+    /// Transaction queue
     pub queue: Arc<Queue>,
-    /// Sumeragi consensus
+    /// Sumeragi — consensus
     pub sumeragi: AlwaysAddr<S>,
     /// Kura - block storage
     pub kura: AlwaysAddr<K>,
@@ -96,14 +98,15 @@ where
     S: SumeragiTrait<GenesisNetwork = G, Kura = K, World = W>,
     B: BlockSynchronizerTrait<Sumeragi = S, World = W>,
 {
-    /// To make `Iroha` peer work all actors should be started first.
-    /// After that moment it you can start it with listening to torii events.
+    /// Start actors. The preferred actor type (at the moment is a
+    /// [`Broker`]. This function should be called in order to allow
+    /// [`torii`] to listen for events.
     ///
     /// # Errors
-    /// Can fail if fails:
     /// - Reading genesis from disk
-    /// - Reading telemetry configs and setuping telemetry
-    /// - Initialization of sumeragi
+    /// - Reading telemetry configuration
+    /// - Telemetry setup
+    /// - Initialization of `Sumeragi`
     pub async fn new(
         args: &Arguments,
         instruction_validator: IsInstructionAllowedBoxed<K::World>,
@@ -116,10 +119,10 @@ where
     /// Create Iroha with specified broker.
     ///
     /// # Errors
-    /// Can fail if fails:
     /// - Reading genesis from disk
-    /// - Reading telemetry configs and setuping telemetry
-    /// - Initialization of sumeragi
+    /// - Reading telemetry configuration
+    /// - Telemetry setup
+    /// - Initialization of `Sumeragi`
     pub async fn with_broker(
         args: &Arguments,
         instruction_validator: IsInstructionAllowedBoxed<K::World>,
@@ -135,10 +138,10 @@ where
     /// Creates Iroha with specified broker and custom config that overrides `args`
     ///
     /// # Errors
-    /// Can fail if fails:
     /// - Reading genesis from disk
-    /// - Reading telemetry configs and setuping telemetry
-    /// - Initialization of sumeragi
+    /// - Reading telemetry configuration
+    /// - Telemetry setup
+    /// - Initialization of `Sumeragi`
     pub async fn with_broker_and_config(
         args: &Arguments,
         config: Configuration,
@@ -167,9 +170,9 @@ where
     /// Create Iroha with specified broker, config, and genesis.
     ///
     /// # Errors
-    /// Can fail if fails:
-    /// - Reading telemetry configs and setuping telemetry
-    /// - Initialization of sumeragi
+    /// - Reading telemetry configuration
+    /// - Telemetry setup
+    /// - Initialization of `Sumeragi`
     #[allow(clippy::non_ascii_literal)]
     pub async fn with_genesis(
         genesis: Option<G>,
@@ -262,11 +265,10 @@ where
         })
     }
 
-    /// To make `Iroha` peer work it should be started first. After
-    /// that moment it will listen for incoming requests and messages.
+    /// Start Iroha peer.
     ///
     /// # Errors
-    /// Can fail if initing kura fails
+    /// If [`kura`] fails to initialize.
     #[iroha_futures::telemetry_future]
     pub async fn start(&mut self) -> Result<()> {
         iroha_logger::info!("Starting Iroha");
@@ -278,9 +280,10 @@ where
             .wrap_err("Failed to start Torii")
     }
 
-    /// Starts iroha in separate tokio task.
+    /// Start Iroha in separate tokio task.
+    ///
     /// # Errors
-    /// Can fail if initing kura fails
+    /// if [`kura`] fails to initialize.
     pub fn start_as_task(&mut self) -> Result<JoinHandle<eyre::Result<()>>> {
         iroha_logger::info!("Starting Iroha as task");
         let torii = self
@@ -321,9 +324,9 @@ where
     }
 }
 
-/// Allow to check if an item is included in a blockchain.
+/// Check if an item is included in the blockchain.
 pub trait IsInBlockchain {
-    /// Checks if this item has already been committed or rejected.
+    /// Check if this item has already been committed or rejected.
     fn is_in_blockchain<W: WorldTrait>(&self, wsv: &WorldStateView<W>) -> bool;
 }
 

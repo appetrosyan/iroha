@@ -76,11 +76,13 @@ pub struct MessageResult(pub Result<Message, Error>);
 
 impl MessageResult {
     /// Constructor for positive result
+    #[inline]
     pub const fn new_message(message: Message) -> Self {
         Self(Ok(message))
     }
 
     /// Constructor for negative result
+    #[inline]
     pub const fn new_error(error: Error) -> Self {
         Self(Err(error))
     }

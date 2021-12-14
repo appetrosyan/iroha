@@ -145,8 +145,8 @@ where
         }
     }
 
-    /// Creates a shared key from two public keys - local and external,
-    /// then instantiates an encryptor from that key.
+    /// Creates a shared key from two public keys - local and
+    /// external, then instantiates an encryptor from that key.
     fn derive_shared_key(&mut self, public_key: &PublicKey) -> Result<&Self, Error> {
         let dh = K::new();
         let shared = dh.compute_shared_secret(&self.secret_key, public_key)?;
@@ -670,7 +670,8 @@ pub async fn send_client_hello(stream: &mut OwnedWriteHalf, key: &[u8]) -> io::R
 /// Read server hello.
 ///
 /// # Errors
-/// If reading from `stream` fails, or if the exact key is not present in the stream.
+/// - Reading from `stream` fails,
+/// - The exact key is not present in the stream.
 pub async fn read_server_hello(stream: &mut OwnedReadHalf) -> Result<PublicKey, Error> {
     stream.as_ref().readable().await?;
     Garbage::read(stream).await?;
@@ -695,9 +696,9 @@ async fn send_server_hello(stream: &mut OwnedWriteHalf, key: &[u8]) -> io::Resul
 /// Read message from `stream` returning the message truncated to `MAX_MESSAGE_LENGTH`.
 ///
 /// # Errors
-/// If reading from `stream` fails, if the stream doesn't contain exactly `size` zeroes,
-/// where `size` is the first `u32` of the `stream`. Returns [`crate::Error::Format`] if the
-/// length of the message is is more than `MAX_MESSAGE_LENGTH`.
+/// - Reading from `stream` fails,
+/// - The stream doesn't contain exactly `size` zeroes, where `size` is the first `u32` of the `stream`.
+/// - [`Error::Format`] if the length of the message is is more than `MAX_MESSAGE_LENGTH`.
 async fn read_message(stream: &mut OwnedReadHalf) -> Result<Message, Error> {
     let size = stream.read_u32().await? as usize;
     if size > 0 && size < MAX_MESSAGE_LENGTH {
@@ -716,8 +717,8 @@ async fn read_message(stream: &mut OwnedReadHalf) -> Result<Message, Error> {
 /// Send byte-encoded message to the peer
 ///
 /// # Errors
-/// If writing to `stream` fails, or [`crate::Error::Format`] if the
-/// message length is more than `MAX_MESSAGE_LENGTH`.
+/// - Writing to `stream` fails,
+/// - [`Error::Format`] if the message length is more than `MAX_MESSAGE_LENGTH`.
 pub async fn send_message(stream: &mut OwnedWriteHalf, data: &[u8]) -> Result<(), Error> {
     if data.len() > MAX_MESSAGE_LENGTH {
         error!(

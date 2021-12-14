@@ -1,5 +1,5 @@
-//! This module provides the [`WorldStateView`] - in-memory representations of the current blockchain
-//! state.
+//! Provides the [`WorldStateView`] - in-memory representations of the
+//! current blockchain state.
 
 use std::{
     fmt::Debug,
@@ -35,14 +35,15 @@ pub type NewBlockNotificationReceiver = tokio::sync::watch::Receiver<()>;
 pub trait WorldTrait:
     Deref<Target = World> + DerefMut + Send + Sync + 'static + Debug + Default + Sized + Clone
 {
-    /// Creates a [`World`] with these [`Domain`]s and trusted [`PeerId`]s.
+    /// Create a [`World`] with the provided [`Domain`]s and trusted
+    /// [`PeerId`]s.
     fn with(
         domains: impl IntoIterator<Item = (DomainId, Domain)>,
         trusted_peers_ids: impl IntoIterator<Item = PeerId>,
     ) -> Self;
 }
 
-/// The global entity consisting of `domains`, `triggers` and etc.
+/// The global entity consisting of `domains`, `triggers` etc.
 /// For example registration of domain, will have this as an ISI target.
 #[derive(Debug, Default, Clone)]
 pub struct World {
@@ -100,10 +101,10 @@ impl WorldTrait for World {
         trusted_peers_ids: impl IntoIterator<Item = PeerId>,
     ) -> Self {
         let domains = domains.into_iter().collect();
-        let trusted_peers_ids = trusted_peers_ids.into_iter().collect();
+        let trusted_peer_ids = trusted_peers_ids.into_iter().collect();
         World {
             domains,
-            trusted_peers_ids,
+            trusted_peers_ids: trusted_peer_ids,
             ..World::new()
         }
     }
@@ -137,7 +138,7 @@ impl<W: WorldTrait> WorldStateView<W> {
         self
     }
 
-    /// Initializes WSV with the blocks from block storage.
+    /// Initializes [`WorldStateView`] with the blocks from block storage.
     #[iroha_futures::telemetry_future]
     pub async fn init(&self, blocks: Vec<VersionedCommittedBlock>) {
         for block in blocks {
@@ -149,7 +150,8 @@ impl<W: WorldTrait> WorldStateView<W> {
         }
     }
 
-    /// Returns a set of permission tokens granted to this account as part of roles and separately.
+    /// Returns a set of permission tokens granted to this account as
+    /// part of roles and separately.
     #[allow(clippy::unused_self)]
     pub fn account_permission_tokens(
         &self,
@@ -167,12 +169,11 @@ impl<W: WorldTrait> WorldStateView<W> {
         tokens
     }
 
-    /// Apply `CommittedBlock` with changes in form of **Iroha Special Instructions** to `self`.
+    /// Apply [`VersionedCommittedBlock`] with changes in form of
+    /// **Iroha Special Instructions** to `self`.
     ///
     /// # Errors
-    /// Can fail if execution of instruction fails(should be fine after validation)
-
-    /// Apply [`CommittedBlock`] with changes in form of **Iroha Special Instructions** to `self`.
+    /// if instruction  execution fails
     #[iroha_futures::telemetry_future]
     #[log(skip(self, block))]
     pub async fn apply(&self, block: VersionedCommittedBlock) -> Result<()> {
@@ -195,8 +196,9 @@ impl<W: WorldTrait> WorldStateView<W> {
             }
 
             self.transactions.insert(tx.hash());
-            // Yield control cooperatively to the task scheduler.
-            // The transaction processing is a long CPU intensive task, so this should be included here.
+            // Yield control cooperatively to the task scheduler.  The
+            // transaction processing is a long, CPU intensive task,
+            // so this should be included here.
             task::yield_now().await;
         }
         for tx in &block.as_v1().rejected_transactions {
@@ -323,12 +325,12 @@ impl<W: WorldTrait> WorldStateView<W> {
             .map(|block_entry| block_entry.value().clone())
     }
 
-    /// Get an immutable view of the `World`.
+    /// Get an immutable view of the [`World`].
     pub fn world(&self) -> &W {
         &self.world
     }
 
-    /// Add new `Domain` entity.
+    /// Add new [`Domain`] entity.
     pub fn add_domain(&mut self, domain: Domain) {
         self.world.domains.insert(domain.id.clone(), domain);
     }
@@ -343,7 +345,7 @@ impl<W: WorldTrait> WorldStateView<W> {
         &self.world.trusted_peers_ids
     }
 
-    /// Get `Domain` without an ability to modify it.
+    /// Get [`Domain`] without an ability to modify it.
     ///
     /// # Errors
     /// Fails if there is no domain
@@ -359,7 +361,7 @@ impl<W: WorldTrait> WorldStateView<W> {
         Ok(domain)
     }
 
-    /// Get `Domain` with an ability to modify it.
+    /// Get [`Domain`] mutably.
     ///
     /// # Errors
     /// Fails if there is no domain
@@ -375,10 +377,10 @@ impl<W: WorldTrait> WorldStateView<W> {
         Ok(domain)
     }
 
-    /// Get `Domain` and pass it to closure.
+    /// Get [`Domain`] and pass it to closure.
     ///
     /// # Errors
-    /// Fails if there is no domain
+    /// If domain is not in the [`World`].
     pub fn map_domain<T>(
         &self,
         id: &<Domain as Identifiable>::Id,
@@ -388,10 +390,10 @@ impl<W: WorldTrait> WorldStateView<W> {
         Ok(f(domain.value()))
     }
 
-    /// Get `Domain` and pass it to closure to modify it
+    /// Get [`Domain`] and pass it to closure to modify it
     ///
     /// # Errors
-    /// Fails if there is no domain
+    /// If domain is not in the [`World`].
     pub fn modify_domain(
         &self,
         id: &<Domain as Identifiable>::Id,
@@ -401,10 +403,10 @@ impl<W: WorldTrait> WorldStateView<W> {
         f(domain.value_mut())
     }
 
-    /// Get `Account` and pass it to closure.
+    /// Get [`Account`] and pass it to closure.
     ///
     /// # Errors
-    /// Fails if there is no domain or account
+    /// Fails if there is no [`Domain`] or [`Account`].
     pub fn map_account<T>(
         &self,
         id: &AccountId,
@@ -418,10 +420,10 @@ impl<W: WorldTrait> WorldStateView<W> {
         Ok(f(account))
     }
 
-    /// Get `Account` and pass it to closure to modify it
+    /// Get [`Account`], and pass it to the provided `f`.
     ///
     /// # Errors
-    /// Fails if there is no domain or account
+    /// Fails if there is no [`Domain`] or [`Account`].
     pub fn modify_account(
         &self,
         id: &AccountId,
@@ -435,10 +437,10 @@ impl<W: WorldTrait> WorldStateView<W> {
         f(account)
     }
 
-    /// Get `Account`'s `Asset`s and pass it to closure
+    /// Get [`Account`]'s [`Asset`]s and pass it to closure
     ///
     /// # Errors
-    /// Fails if account finding fails
+    /// If account not found.
     pub fn account_assets(&self, id: &AccountId) -> Result<Vec<Asset>, FindError> {
         self.map_account(id, |account| account.assets.values().cloned().collect())
     }
@@ -455,10 +457,10 @@ impl<W: WorldTrait> WorldStateView<W> {
         vec
     }
 
-    /// Get `Asset` by its id
+    /// Get [`Asset`] by its id
     ///
     /// # Errors
-    /// Fails if there are no such asset or account
+    /// if account or asset not found.
     pub fn asset(&self, id: &<Asset as Identifiable>::Id) -> Result<Asset, FindError> {
         self.map_account(&id.account_id, |account| -> Result<Asset, FindError> {
             account
@@ -469,7 +471,7 @@ impl<W: WorldTrait> WorldStateView<W> {
         })?
     }
 
-    /// Get `Asset` by its id
+    /// Get [`Asset`] by its id
     ///
     /// # Errors
     /// Fails if there are no such asset or account
@@ -559,7 +561,9 @@ impl<W: WorldTrait> WorldStateView<W> {
         f(asset_definition_entry)
     }
 
-    /// Check if this [`VersionedTransaction`] is already committed or rejected.
+    /// Check if this [`VersionedTransaction`] is already committed or
+    /// rejected.
+    #[inline]
     pub fn has_transaction(&self, hash: &HashOf<VersionedTransaction>) -> bool {
         self.transactions.contains(hash)
     }
@@ -640,8 +644,8 @@ impl DerefMut for World {
     }
 }
 
-/// This module contains all configuration related logic.
 pub mod config {
+    //! [`super::WorldStateView`] configuration and constants.
     use iroha_config::derive::Configurable;
     use iroha_data_model::{metadata::Limits as MetadataLimits, LengthLimits};
     use serde::{Deserialize, Serialize};
@@ -650,8 +654,8 @@ pub mod config {
         MetadataLimits::new(2_u32.pow(20), 2_u32.pow(12));
     const DEFAULT_IDENT_LENGTH_LIMITS: LengthLimits = LengthLimits::new(1, 2_u32.pow(7));
 
-    /// [`WorldStateView`](super::WorldStateView) configuration.
-    #[derive(Clone, Deserialize, Serialize, Debug, Copy, Configurable, PartialEq, Eq)]
+    /// [`super::WorldStateView`] configuration.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize, Configurable)]
     #[config(env_prefix = "WSV_")]
     #[serde(rename_all = "UPPERCASE", default)]
     pub struct Configuration {
@@ -668,6 +672,7 @@ pub mod config {
     }
 
     impl Default for Configuration {
+        #[inline]
         fn default() -> Self {
             Configuration {
                 asset_metadata_limits: DEFAULT_METADATA_LIMITS,

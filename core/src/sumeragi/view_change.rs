@@ -36,6 +36,7 @@ impl Proof {
     }
 
     /// Constructor for `CommitTimeout` view change suggestion.
+    ///
     /// # Errors
     /// Fails if signing failed.
     pub fn commit_timeout(
@@ -53,6 +54,7 @@ impl Proof {
     }
 
     /// Constructor for `BlockCreationTimeout` view change suggestion.
+    ///
     /// # Errors
     /// Can fail due to signing
     pub fn block_creation_timeout(

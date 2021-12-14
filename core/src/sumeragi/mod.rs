@@ -1,6 +1,9 @@
-//! This module contains consensus related logic of the Iroha.
+//! Consensus of Iroha. The module contains `Sumeragi`, the
+//! [Byzantine Fault
+//! tolerant](https://decrypt.co/resources/byzantine-fault-tolerance-what-is-it-explained)
+//! consensus engine of Iroha.
 //!
-//! `Consensus` trait is now implemented only by `Sumeragi` for now.
+//! The `Consensus` trait is, for now, implemented only by `Sumeragi`.
 
 use std::{
     collections::{hash_map::Entry, BTreeMap, HashMap, HashSet},
@@ -233,7 +236,7 @@ pub trait SumeragiTrait:
     /// Construct [`Sumeragi`].
     ///
     /// # Errors
-    /// Can fail during initing network topology
+    /// Fails if network topology fails to initialize.
     #[allow(clippy::too_many_arguments)]
     fn from_configuration(
         configuration: &config::SumeragiConfiguration,
@@ -380,6 +383,7 @@ impl<G: GenesisNetworkTrait, K: KuraTrait, W: WorldTrait, F: FaultInjection> Han
     for SumeragiWithFault<G, K, W, F>
 {
     type Result = ();
+
     async fn handle(&mut self, Gossip: Gossip) {
         // Select N random transactions and gossip them.
         // This is done for peer not to DOS themselves under high tx load.
@@ -395,6 +399,7 @@ impl<G: GenesisNetworkTrait, K: KuraTrait, W: WorldTrait, F: FaultInjection> Han
     for SumeragiWithFault<G, K, W, F>
 {
     type Result = ();
+
     async fn handle(&mut self, ConnectPeers: ConnectPeers) {
         self.connect_peers().await;
     }
@@ -405,6 +410,7 @@ impl<G: GenesisNetworkTrait, K: KuraTrait, W: WorldTrait, F: FaultInjection>
     Handler<UpdateTelemetry> for SumeragiWithFault<G, K, W, F>
 {
     type Result = ();
+
     async fn handle(&mut self, UpdateTelemetry: UpdateTelemetry) {
         let block_hash = self.topology.at_block();
         let finalized_height = self.block_height.saturating_sub(1);
@@ -619,16 +625,19 @@ impl<G: GenesisNetworkTrait, K: KuraTrait, W: WorldTrait, F: FaultInjection>
 
     /// Number of view changes.
     /// Where a view change is a change in topology made if there was some consensus misfunction during round (faulty peers).
+    #[inline]
     pub fn number_of_view_changes(&self) -> u64 {
         self.topology.view_change_proofs().len() as u64
     }
 
     /// The proofs of view changes that happened after the last block was committed.
+    #[inline]
     pub fn view_change_proofs(&self) -> &ViewChangeProofs {
         self.topology.view_change_proofs()
     }
 
     /// The hash of the latest view change.
+    #[inline]
     pub fn latest_view_change_hash(&self) -> HashOf<Proof> {
         self.view_change_proofs().latest_hash()
     }
@@ -638,13 +647,13 @@ impl<G: GenesisNetworkTrait, K: KuraTrait, W: WorldTrait, F: FaultInjection>
         self.topology.sorted_peers().iter().cloned().collect()
     }
 
-    /// Assumes this peer is a leader and starts the round with the given `genesis_topology`.
+    /// Assumes this peer is a leader and starts the round with the
+    /// given `genesis_topology`.
     ///
     /// # Errors
-    /// Can fail if:
-    /// * transactions are empty
-    /// * peer is not leader
-    /// * there are already some blocks in blockchain
+    /// - Transactions are empty
+    /// - Peer is not leader
+    /// - There are already some blocks in blockchain
     #[iroha_futures::telemetry_future]
     #[log(skip(self, transactions, genesis_topology, ctx))]
     pub async fn start_genesis_round(
@@ -675,10 +684,11 @@ impl<G: GenesisNetworkTrait, K: KuraTrait, W: WorldTrait, F: FaultInjection>
         }
     }
 
-    /// The leader of each round just uses the transactions they have at hand to create a block.
+    /// The leader of each round just uses the transactions they have
+    /// at hand to create a block.
     ///
     /// # Errors
-    /// Can fail during signing of block
+    /// Fails if [`Self::validate_and_publish_created_block`] fails.
     #[iroha_futures::telemetry_future]
     pub async fn round(
         &mut self,
@@ -971,6 +981,7 @@ impl<G: GenesisNetworkTrait, K: KuraTrait, W: WorldTrait, F: FaultInjection>
     }
 
     /// If this peer is a leader in this round.
+    #[inline]
     pub fn is_leader(&self) -> bool {
         self.topology.role(&self.peer_id) == Role::Leader
     }
@@ -1084,6 +1095,7 @@ pub struct VotingBlock {
 impl VotingBlock {
     /// Constructs new `VotingBlock.`
     #[allow(clippy::expect_used)]
+    #[inline]
     pub fn new(block: VersionedValidBlock) -> VotingBlock {
         VotingBlock {
             voted_at: current_time(),
@@ -1125,6 +1137,7 @@ pub mod message {
 
     impl VersionedMessage {
         /// Converts from `&VersionedMessage` to V1 reference
+        #[inline]
         pub const fn as_v1(&self) -> &Message {
             match self {
                 Self::V1(v1) => v1,
@@ -1132,6 +1145,7 @@ pub mod message {
         }
 
         /// Converts from `&mut VersionedMessage` to V1 mutable reference
+        #[inline]
         pub fn as_mut_v1(&mut self) -> &mut Message {
             match self {
                 Self::V1(v1) => v1,
@@ -1139,13 +1153,15 @@ pub mod message {
         }
 
         /// Performs the conversion from `VersionedMessage` to V1
+        #[inline]
         pub fn into_v1(self) -> Message {
             match self {
                 Self::V1(v1) => v1,
             }
         }
 
-        /// Send this message over the network to the specified `peer`.
+        /// Send this message over the network to the specified [`Peer`]s.
+        ///
         /// # Errors
         /// Fails if network sending fails
         #[iroha_futures::telemetry_future]
@@ -1158,7 +1174,8 @@ pub mod message {
             broker.issue_send(post).await;
         }
 
-        /// Send this message over the network to multiple `peers`.
+        /// Send this message over the network to multiple [`Peer`]s.
+        ///
         /// # Errors
         /// Fails if network sending fails
         pub async fn send_to_multiple<'a, I>(self, broker: &Broker, peers: I)
@@ -1700,6 +1717,7 @@ pub mod message {
         }
 
         /// Checks if the block should have been already created by the `Leader`.
+        #[inline]
         pub fn is_block_should_be_created(&self, block_time: Duration) -> bool {
             (current_time() - self.received_at) >= block_time
         }
@@ -1772,8 +1790,7 @@ pub mod config {
     const DEFAULT_GOSSIP_PERIOD_MS: u64 = 1000;
     const DEFAULT_GOSSIP_BATCH_SIZE: usize = 500;
 
-    /// `SumeragiConfiguration` provides an ability to define parameters such as `BLOCK_TIME_MS`
-    /// and list of `TRUSTED_PEERS`.
+    /// `SumeragiConfiguration` provides an ability to define parameters such as `BLOCK_TIME_MS` and list of `TRUSTED_PEERS`.
     #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize, Configurable)]
     #[serde(default)]
     #[serde(rename_all = "UPPERCASE")]
@@ -1805,6 +1822,7 @@ pub mod config {
     }
 
     impl Default for SumeragiConfiguration {
+        #[inline]
         fn default() -> Self {
             Self {
                 key_pair: KeyPair::default(),
@@ -1834,8 +1852,7 @@ pub mod config {
         }
     }
 
-    /// `SumeragiConfiguration` provides an ability to define parameters such as `BLOCK_TIME_MS`
-    /// and list of `TRUSTED_PEERS`.
+    /// `SumeragiConfiguration` provides an ability to define parameters such as `BLOCK_TIME_MS and list of `TRUSTED_PEERS`.
     #[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize, Serialize)]
     #[serde(rename_all = "UPPERCASE")]
     #[serde(transparent)]
@@ -1861,6 +1878,7 @@ pub mod config {
         }
     }
 
+    #[inline]
     fn default_peer_id() -> PeerId {
         PeerId {
             address: "".to_owned(),
@@ -1868,7 +1886,8 @@ pub mod config {
         }
     }
 
-    // Allowed because `HashSet::new()` is not const yet.
+    // TODO: remove when `HashSet::new()` is const.
+    #[inline]
     fn default_empty_trusted_peers() -> TrustedPeers {
         TrustedPeers {
             peers: HashSet::new(),

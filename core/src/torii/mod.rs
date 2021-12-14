@@ -425,6 +425,7 @@ async fn handle_pending_transactions<W: WorldTrait>(
 }
 
 #[iroha_futures::telemetry_future]
+
 async fn handle_get_configuration(
     iroha_cfg: Configuration,
     get_cfg: GetConfiguration,

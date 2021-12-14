@@ -1,6 +1,9 @@
-//! Module that opts different smartcontract runtime
+//! Smartcontract runtime.
 //!
-//! Currently supported only Iroha instructions
+//! Currently only Iroha instructions are supported. If you want to
+//! register another ISI, you should implement [`Execute`]. For
+//! queries, implement [`ValidQuery`]. Expressions should implement
+//! [`Evaluate`] and make sure that they are free of side-effects.
 
 pub mod isi;
 pub mod wasm;
@@ -11,7 +14,7 @@ pub use isi::*;
 use super::wsv::WorldStateView;
 use crate::wsv::WorldTrait;
 
-/// Trait implementations should provide actions to apply changes on [`WorldStateView`].
+/// Trait implementations provide actions to apply changes to [`WorldStateView`].
 #[allow(clippy::missing_errors_doc)]
 pub trait Execute<W: WorldTrait> {
     /// Error type returned by execute function
@@ -43,7 +46,7 @@ pub trait Evaluate<W: WorldTrait> {
     ) -> Result<Self::Value, Self::Error>;
 }
 
-/// This trait should be implemented for all Iroha Queries.
+/// Trait implemented by all Iroha Queries.
 #[allow(clippy::missing_errors_doc)]
 pub trait ValidQuery<W: WorldTrait>: Query {
     /// Execute query on the [`WorldStateView`].

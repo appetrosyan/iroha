@@ -43,7 +43,7 @@ impl<T> From<EmptyChainHash<T>> for HashOf<T> {
 }
 
 /// Blockchain.
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Chain {
     blocks: DashMap<u64, VersionedCommittedBlock>,
 }

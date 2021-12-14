@@ -42,6 +42,8 @@ criterion = { version = "0.3", features = ["html_reports"] }
 tempfile = "3"
 tokio = { version = "1.6.0", features = ["rt", "rt-multi-thread"]}
 
+test-fuzz = "2.0.0" # Note this **shouldn't** be a dev-dependency. 
+
 [[bench]]
 name = "torii"
 harness = false

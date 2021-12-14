@@ -376,7 +376,7 @@ impl Txn for VersionedValidTransaction {
 
 /// `ValidTransaction` represents trustfull Transaction state.
 #[version_with_scale(n = 1, versioned = "VersionedValidTransaction")]
-#[derive(Debug, Clone, Decode, Encode, IntoSchema)]
+#[derive(Debug, Clone, Decode, Encode, IntoSchema, Serialize, Deserialize)]
 pub struct ValidTransaction {
     /// The [`Transaction`]'s payload.
     pub payload: Payload,

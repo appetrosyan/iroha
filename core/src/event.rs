@@ -23,10 +23,13 @@ pub struct Consumer {
 }
 
 impl Consumer {
-    /// Constructs `Consumer`, which consumes `Event`s and forwards it through the `stream`.
+    /// Constructs `Consumer`, which consumes `Event`s and forwards it
+    /// through the `stream`.
     ///
     /// # Errors
-    /// Can fail due to timeout or without message at websocket or during decoding request
+    /// - Due to timeout without message at web-socket
+    /// - Message is binary.
+    /// - Request decoding fails.
     #[iroha_futures::telemetry_future]
     pub async fn new(mut stream: WebSocket) -> Result<Self> {
         let subscription_request: VersionedEventSubscriberMessage = stream.recv().await?;

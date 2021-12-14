@@ -83,14 +83,14 @@ impl Default for NetworkConfiguration {
 }
 
 impl Configuration {
-    /// This method will build `Configuration` from a json *pretty* formatted file (without `:` in
+    /// Build `Configuration` from a json *pretty* formatted file (without `:` in
     /// key names).
     ///
     /// # Panics
-    /// This method will panic if configuration file presented, but has incorrect scheme or format.
+    /// If configuration file has incorrect scheme or format.
     ///
     /// # Errors
-    /// This method will return error if system will fail to find a file or read it's content.
+    /// If system cannot find configuration.
     pub fn from_path<P: AsRef<Path> + Debug>(path: P) -> Result<Configuration> {
         let file = File::open(path).wrap_err("Failed to open the config file")?;
         let reader = BufReader::new(file);
@@ -105,9 +105,10 @@ impl Configuration {
         Ok(configuration)
     }
 
-    /// Loads configuration from environment
+    /// Load configuration from environment
+    ///
     /// # Errors
-    /// Fails if fails to deserialize configuration from env variables
+    /// If [`iroha_config::Configurable::load_environment`] fails.
     pub fn load_environment(&mut self) -> Result<()> {
         iroha_config::Configurable::load_environment(self)?;
         self.sumeragi.key_pair = KeyPair {

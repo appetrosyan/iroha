@@ -1,6 +1,6 @@
-//! This module contains Transaction related functionality of the Iroha.
+//! Transaction logic of Iroha.
 //!
-//! `Transaction` is the start of the Transaction lifecycle.
+//! [`Transaction`] is the start of the Transaction lifecycle.
 
 use std::{cmp::min, time::Duration};
 
@@ -9,6 +9,7 @@ use iroha_crypto::SignaturesOf;
 pub use iroha_data_model::prelude::*;
 use iroha_version::{declare_versioned_with_scale, version_with_scale};
 use parity_scale_codec::{Decode, Encode};
+use serde::{Deserialize, Serialize};
 
 use crate::{
     prelude::*,
@@ -19,10 +20,11 @@ use crate::{
     wsv::WorldTrait,
 };
 
-declare_versioned_with_scale!(VersionedAcceptedTransaction 1..2, Debug, Clone, iroha_macro::FromVariant);
+declare_versioned_with_scale!(VersionedAcceptedTransaction 1..2, Debug, Clone, Serialize, Deserialize, iroha_macro::FromVariant);
 
 impl VersionedAcceptedTransaction {
     /// Converts from `&VersionedAcceptedTransaction` to V1 reference
+    #[inline]
     pub const fn as_v1(&self) -> &AcceptedTransaction {
         match self {
             VersionedAcceptedTransaction::V1(v1) => v1,
@@ -30,6 +32,7 @@ impl VersionedAcceptedTransaction {
     }
 
     /// Converts from `&mut VersionedAcceptedTransaction` to V1 mutable reference
+    #[inline]
     pub fn as_mut_v1(&mut self) -> &mut AcceptedTransaction {
         match self {
             VersionedAcceptedTransaction::V1(v1) => v1,
@@ -37,15 +40,17 @@ impl VersionedAcceptedTransaction {
     }
 
     /// Performs the conversion from `VersionedAcceptedTransaction` to V1
+    #[inline]
     pub fn into_v1(self) -> AcceptedTransaction {
         match self {
             VersionedAcceptedTransaction::V1(v1) => v1,
         }
     }
 
-    /// Accepts transaction
+    /// Accept transaction
+    ///
     /// # Errors
-    /// Can fail if verification of some signature fails
+    /// If verification of signature fails
     pub fn from_transaction(
         transaction: Transaction,
         max_instruction_number: u64,
@@ -58,6 +63,7 @@ impl VersionedAcceptedTransaction {
     /// `time_to_live_ms` of this transaction.  Meaning that the
     /// transaction will be expired as soon as the lesser of the
     /// specified TTLs was reached.
+    #[inline]
     pub fn is_expired(&self, transaction_time_to_live: Duration) -> bool {
         self.as_v1().is_expired(transaction_time_to_live)
     }
@@ -66,15 +72,17 @@ impl VersionedAcceptedTransaction {
     /// tampered with. This is common practice in e.g. `https`, where
     /// setting your system clock back in time will prevent you from
     /// accessing any of the https web-sites.
+    #[inline]
     pub fn is_in_future(&self, threshold: Duration) -> bool {
         self.as_v1().is_in_future(threshold)
     }
 
-    /// Move transaction lifecycle forward by checking an ability to
-    /// apply instructions to the `WorldStateView<W>`.
+    /// Move transaction life-cycle forward by checking an ability to
+    /// apply instructions to the [`WorldStateView<W>`].
     ///
     /// # Errors
-    /// Fails if validation of instruction fails (e.g. permissions mismatch).
+    /// - validation of instruction fails due to permissions
+    /// - other kinds of errors.
     pub fn validate<W: WorldTrait>(
         self,
         wsv: &WorldStateView<W>,
@@ -92,13 +100,22 @@ impl VersionedAcceptedTransaction {
     /// signature condition specified in the account.
     ///
     /// # Errors
-    /// - if signature conditionon fails
-    /// - if account is not found
+    /// - signature condition check for account fails
+    /// - account not found
     pub fn check_signature_condition<W: WorldTrait>(
         &self,
         wsv: &WorldStateView<W>,
     ) -> Result<bool> {
         self.as_v1().check_signature_condition(wsv)
+    }
+
+    /// Rejects transaction with the `rejection_reason`.
+    #[inline]
+    pub fn reject(
+        self,
+        rejection_reason: TransactionRejectionReason,
+    ) -> VersionedRejectedTransaction {
+        self.into_v1().reject(rejection_reason).into()
     }
 }
 
@@ -113,7 +130,7 @@ impl Txn for VersionedAcceptedTransaction {
 
 /// `AcceptedTransaction` represents a transaction accepted by iroha peer.
 #[version_with_scale(n = 1, versioned = "VersionedAcceptedTransaction")]
-#[derive(Debug, Clone, Decode, Encode)]
+#[derive(Debug, Clone, Decode, Encode, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct AcceptedTransaction {
     /// Payload of this transaction.
@@ -126,7 +143,7 @@ impl AcceptedTransaction {
     /// Accepts transaction
     ///
     /// # Errors
-    /// Can fail if verification of some signature fails
+    /// Fails if signature verification fails
     pub fn from_transaction(
         transaction: Transaction,
         max_instruction_number: u64,
@@ -149,7 +166,7 @@ impl AcceptedTransaction {
     }
 
     /// Checks if this transaction is waiting longer than specified in
-    /// `transaction_time_to_live` from `QueueConfiguration` or
+    /// `transaction_time_to_live` from [`QueueConfiguration`] or
     /// `time_to_live_ms` of this transaction.  Meaning that the
     /// transaction will be expired as soon as the lesser of the
     /// specified TTLs was reached.
@@ -281,8 +298,8 @@ impl AcceptedTransaction {
         Ok(())
     }
 
-    /// Move transaction lifecycle forward by checking an ability to apply instructions to the
-    /// `WorldStateView<W>`.
+    /// Move transaction lifecycle forward by checking an ability to
+    /// apply instructions to the `WorldStateView<W>`.
     ///
     /// # Errors
     /// Can fail if:
@@ -305,10 +322,12 @@ impl AcceptedTransaction {
         }
     }
 
-    /// Checks that the signatures of this transaction satisfy the signature condition specified in the account.
+    /// Checks that the signatures of this transaction satisfy the
+    /// signature condition specified in the account.
     ///
     /// # Errors
-    /// Can fail if signature conditionon account fails or if account is not found
+    /// - signature condition check on account fails
+    /// - account not found
     pub fn check_signature_condition<W: WorldTrait>(
         &self,
         wsv: &WorldStateView<W>,

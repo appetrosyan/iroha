@@ -1,1 +1,1 @@
-//! This module contains functionality related to `DEX`.
+//! `DEX` — Decentralised EXchange.

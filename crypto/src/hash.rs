@@ -72,10 +72,10 @@ impl AsRef<[u8]> for Hash {
     }
 }
 
-/// Represents hash of Iroha entities like `Block` or `Transaction`. Currently supports only blake2b-32.
-// Lint triggers when expanding #[codec(skip)]
-#[allow(clippy::default_trait_access)]
-#[derive(Deref, DerefMut, Display, Decode, Encode, Deserialize, Serialize)]
+/// Represents hash of Iroha entities like `Block` or
+/// `Transaction`. Currently supports only
+/// [blake2b-32](https://coinguides.org/blake2b/).
+#[derive(Encode, Decode, Serialize, Deserialize, Deref, DerefMut, Display)]
 #[display(fmt = "{}", _0)]
 #[serde(transparent)]
 pub struct HashOf<T>(
