@@ -126,7 +126,6 @@ where
         broker: Broker,
     ) -> Result<Self> {
         let mut config = Configuration::from_path(&args.config_path)?;
-        // config.load_trusted_peers_from_path(&args.trusted_peers_path)?;
         config.load_environment()?;
         Self::with_broker_and_config(args, config, instruction_validator, query_validator, broker)
             .await
@@ -329,17 +328,12 @@ const GENESIS_PATH: &str = "genesis.json";
 
 /// Arguments for Iroha2 - usually parsed from cli.
 #[derive(Debug)]
-#[cfg_attr(feature = "cli", derive(structopt::StructOpt))]
-#[cfg_attr(feature = "cli", structopt(name = "Hyperledger Iroha 2"))]
 pub struct Arguments {
     /// Set this flag on the peer that should submit genesis on the network initial start.
-    #[cfg_attr(feature = "cli", structopt(long))]
     pub submit_genesis: bool,
     /// Set custom genesis file path.
-    #[cfg_attr(feature = "cli", structopt(parse(from_os_str), long, default_value = GENESIS_PATH))]
     pub genesis_path: PathBuf,
     /// Set custom config file path.
-    #[cfg_attr(feature = "cli", structopt(parse(from_os_str), long, default_value = CONFIGURATION_PATH))]
     pub config_path: PathBuf,
 }
 
