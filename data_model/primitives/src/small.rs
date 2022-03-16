@@ -60,8 +60,9 @@ mod small_string {
 
     impl IntoSchema for SmallStr {
         fn type_name() -> String {
-            String::type_name()
+            "SmallString".to_owned()
         }
+
         fn schema(map: &mut MetaMap) {
             String::schema(map);
         }
@@ -217,7 +218,7 @@ mod small_vector {
 
     impl<T: IntoSchema, A: smallvec::Array<Item = T>> IntoSchema for SmallVec<A> {
         fn type_name() -> String {
-            Vec::<T>::type_name()
+            format!("SmallVec<{}>", T::type_name())
         }
 
         fn schema(map: &mut MetaMap) {

@@ -12,6 +12,7 @@ mod multisignature_transaction;
 mod offline_peers;
 mod pagination;
 mod permissions;
+mod query;
 mod restart_peer;
 mod transfer_asset;
 mod tx_history;
