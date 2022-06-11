@@ -1,50 +1,91 @@
-FROM alpine:3.16
-ENV RUST_VERSION=1.60.0 \
-    RUSTUP_HOME=/usr/local/rustup \
-    CARGO_HOME=/usr/local/cargo \
-    PATH=/usr/local/cargo/bin:$PATH
+FROM ubuntu:jammy
+
+ENV CHANNEL="stable"
+ENV RUSTUP_VER="1.24.3"
+
+ENV PATH=$PREFIX/bin:$PATH \
+    PKG_CONFIG_ALLOW_CROSS=true \
+    PKG_CONFIG_ALL_STATIC=true \
+    PQ_LIB_STATIC_X86_64_UNKNOWN_LINUX_MUSL=true \
+    PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig \
+    PG_CONFIG_X86_64_UNKNOWN_LINUX_GNU=/usr/bin/pg_config \
+    OPENSSL_STATIC=true \
+    OPENSSL_DIR=$PREFIX \
+    SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt \
+    SSL_CERT_DIR=/etc/ssl/certs \
+    LIBZ_SYS_STATIC=1 \
+    DEBIAN_FRONTEND=noninteractive \
+    TZ=Etc/UTC
+
+ENV SSL_VER="1.1.1o" \
+    CC=musl-gcc \
+    PREFIX=/musl \
+    PATH=/usr/local/bin:/root/.cargo/bin:$PATH \
+    PKG_CONFIG_PATH=/usr/local/lib/pkgconfig \
+    LD_LIBRARY_PATH=$PREFIX
 
 RUN set -eux && \
-    apk update && \
-    apk add \
-       ca-certificates \
-        gcc \
-        curl \
-        clang \
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
+        musl-dev \
+        musl-tools \
+        file \
         git \
-        cmake \
         make \
-        pkgconfig  \
-        libressl-dev=2.5.5-r2 --repository=http://dl-cdn.alpinelinux.org/alpine/v3.6/main \
-        libstdc++ \
-        zlib \
-        zlib-dev \
         g++ \
-        linux-headers \
-        docker docker-compose \
-        mold=1.2.1-r0 --repository=http://dl-cdn.alpinelinux.org/alpine/edge/testing \ 
-        libgcc && \
-    apkArch="$(apk --print-arch)" && \
-    case "${apkArch##*-}" in \
-        x86_64) rustArch='x86_64-unknown-linux-musl'; rustupSha256='bdf022eb7cba403d0285bb62cbc47211f610caec24589a72af70e1e900663be9' ;; \
-        armhf) rustArch='armv7-unknown-linux-gnueabihf'; rustupSha256='67777ac3bc17277102f2ed73fd5f14c51f4ca5963adadf7f174adf4ebc38747b' ;; \
-        arm64) rustArch='aarch64-unknown-linux-gnu'; rustupSha256='32a1532f7cef072a667bac53f1a5542c99666c4071af0c9549795bbdb2069ec1' ;; \
-        i386) rustArch='i686-unknown-linux-gnu'; rustupSha256='e50d1deb99048bc5782a0200aa33e4eea70747d49dffdc9d06812fd22a372515' ;; \
+        curl \
+        pkgconf \
+        ca-certificates \
+        libssl-dev \
+        automake \
+        autoconf \
+        libtool \
+        libz-dev \
+        cmake \
+        clang && \
+    dpkgArch="$(dpkg --print-architecture)" && \
+    case "${dpkgArch##*-}" in \
+        amd64) rustArch='x86_64-unknown-linux-gnu' ;; \
+        armhf) rustArch='armv7-unknown-linux-gnueabihf' ;; \
+        arm64) rustArch='aarch64-unknown-linux-gnu' ;; \
+        i386) rustArch='i686-unknown-linux-gnu' ;; \
         *) echo >&2 "unsupported architecture: ${dpkgArch}"; exit 1 ;; \
     esac && \
-    url="https://static.rust-lang.org/rustup/archive/1.24.3/${rustArch}/rustup-init" && \
-    wget "$url" && \
-    echo "${rustupSha256} *rustup-init" | sha256sum -c - && \
-    chmod +x rustup-init && \
-    ./rustup-init -y --no-modify-path --profile minimal --default-toolchain $RUST_VERSION --default-host ${rustArch} && \
-    rm rustup-init && \
-    source /usr/local/cargo/env
+    curl "https://static.rust-lang.org/rustup/archive/${RUSTUP_VER}/${rustArch}/rustup-init" -o rustup-init && \
+        chmod +x rustup-init && \
+        ./rustup-init -y --default-toolchain ${CHANNEL} --profile minimal && \
+        rm rustup-init && \
+        ~/.cargo/bin/rustup target add x86_64-unknown-linux-musl && \
+        echo "[build]\nincremental = false\n\n[target.x86_64-unknown-linux-gnu]\nlinker = \"clang\"\nrustflags = [\"-C\", \"link-arg=-fuse-ld=/usr/bin/mold\"]\n\n[target.x86_64-unknown-linux-musl]\nlinker = \"clang\"\nrustflags = [\"-C\", \"link-arg=-fuse-ld=/usr/bin/mold\"]" > ~/.cargo/config.toml && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN mkdir $PREFIX && \
+    echo "$PREFIX/lib" >> /etc/ld-musl-x86_64.path && \
+    ln -s /usr/include/x86_64-linux-gnu/asm /usr/include/x86_64-linux-musl/asm && \
+    ln -s /usr/include/asm-generic /usr/include/x86_64-linux-musl/asm-generic && \
+    ln -s /usr/include/linux /usr/include/x86_64-linux-musl/linux
+
+RUN curl -sSL https://www.openssl.org/source/openssl-$SSL_VER.tar.gz | tar xz && \
+    cd openssl-$SSL_VER && \
+    ./Configure no-zlib no-shared -fPIC --prefix=$PREFIX --openssldir=$PREFIX/ssl linux-x86_64 && \
+    env C_INCLUDE_PATH=$PREFIX/include make depend 2> /dev/null && \
+    make -j$(nproc) && make install && \
+    cd .. && rm -rf openssl-$SSL_VER
+
+RUN git clone https://github.com/rui314/mold.git && \
+    git -C "./mold" checkout v1.2.0 && \
+    make --directory="./mold" CCX=clang++ && \
+    make --directory="./mold" install && \
+    rm -rf "./mold"
 
 RUN rustup component add llvm-tools-preview clippy && \
     rustup install --profile default nightly-2022-04-20 && \
-    rustup target add --toolchain nightly-2022-04-20 x86_64-unknown-linux-musl && \
+    rustup toolchain add nightly-2022-04-20-x86_64-unknown-linux-musl && \
     rustup component add rust-src && \
     rustup component add rust-src --toolchain nightly-2022-04-20-x86_64-unknown-linux-musl && \
+    rustup component add rustfmt --toolchain nightly-2022-04-20-x86_64-unknown-linux-musl && \
+    rustup component add rust-std && \
+    rustup target add x86_64-unknown-linux-musl && \
     rustup target add wasm32-unknown-unknown && \
     rustup target add wasm32-unknown-unknown --toolchain nightly-2022-04-20 && \
     cargo install cargo-lints cargo-nono webassembly-test-runner
