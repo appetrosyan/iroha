@@ -31,8 +31,8 @@ fn add_role_to_limit_transfer_count() -> Result<()> {
         .start_with_runtime();
     wait_for_genesis_committed(&vec![test_client.clone()], 0);
 
-    let alice_id = <Account as Identifiable>::Id::from_str("alice@wonderland")?;
-    let mouse_id = <Account as Identifiable>::Id::from_str("mouse@wonderland")?;
+    let alice_id = Alias::from_str("alice@wonderland")?.alice_key();
+    let mouse_id = Alias::from_str("mouse@wonderland")?.fresh_key();
     let rose_definition_id = <AssetDefinition as Identifiable>::Id::from_str("rose#wonderland")?;
     let alice_rose_id =
         <Asset as Identifiable>::Id::new(rose_definition_id.clone(), alice_id.clone());
@@ -44,7 +44,7 @@ fn add_role_to_limit_transfer_count() -> Result<()> {
     assert!(rose_value > COUNT + 1);
 
     // Registering Mouse
-    let register_mouse = RegisterBox::new(Account::new(mouse_id, []));
+    let register_mouse = RegisterBox::new(Account::from_id(mouse_id));
     test_client.submit_blocking(register_mouse)?;
 
     // Registering new role which sets `Transfer` execution count limit to
@@ -110,8 +110,8 @@ fn register_role_with_empty_token_params() -> Result<()> {
     let (_rt, _peer, test_client) = <PeerBuilder>::new().start_with_runtime();
     wait_for_genesis_committed(&vec![test_client.clone()], 0);
 
-    let role_id = "root".parse().expect("Valid");
-    let token = PermissionToken::new("token".parse().expect("Valid"));
+    let role_id = "root".parse()?;
+    let token = PermissionToken::new("token".parse()?);
     let role = Role::new(role_id).add_permission(token);
 
     test_client.submit(RegisterBox::new(role))?;
@@ -133,14 +133,14 @@ fn register_and_grant_role_for_metadata_access() -> Result<()> {
     let (_rt, _peer, test_client) = <PeerBuilder>::new().start_with_runtime();
     wait_for_genesis_committed(&vec![test_client.clone()], 0);
 
-    let alice_id = <Account as Identifiable>::Id::from_str("alice@wonderland")?;
-    let mouse_id = <Account as Identifiable>::Id::from_str("mouse@wonderland")?;
+    let alice_id = Alias::from_str("alice@wonderland")?.alice_key();
 
     // Registering Mouse
     let mouse_key_pair = KeyPair::generate()?;
-    let register_mouse = RegisterBox::new(Account::new(
+
+    let mouse_id = Alias::from_str("mouse@wonderland")?.key(mouse_key_pair.public_key().clone());
+    let register_mouse = RegisterBox::new(Account::from_id(
         mouse_id.clone(),
-        [mouse_key_pair.public_key().clone()],
     ));
     test_client.submit_blocking(register_mouse)?;
 
@@ -161,7 +161,7 @@ fn register_and_grant_role_for_metadata_access() -> Result<()> {
     // Alice modifies Mouse's metadata
     let set_key_value = SetKeyValueBox::new(
         mouse_id,
-        Name::from_str("key").expect("Valid"),
+        Name::from_str("key")?,
         Value::String("value".to_owned()),
     );
     test_client.submit_blocking(set_key_value)?;
@@ -178,12 +178,12 @@ fn unregistered_role_removed_from_account() -> Result<()> {
     let (_rt, _peer, test_client) = <PeerBuilder>::new().start_with_runtime();
     wait_for_genesis_committed(&vec![test_client.clone()], 0);
 
-    let role_id: <Role as Identifiable>::Id = "root".parse().expect("Valid");
-    let alice_id: <Account as Identifiable>::Id = "alice@wonderland".parse().expect("Valid");
-    let mouse_id: <Account as Identifiable>::Id = "mouse@wonderland".parse().expect("Valid");
+    let role_id: <Role as Identifiable>::Id = "root".parse()?;
+    let alice_id  = "alice@wonderland".parse::<Alias>()?.alice_key();
+    let mouse_id = "mouse@wonderland".parse::<Alias>()?.fresh_key();
 
     // Registering Mouse
-    let register_mouse = RegisterBox::new(Account::new(mouse_id.clone(), []));
+    let register_mouse = RegisterBox::new(Account::from_id(mouse_id.clone()));
     test_client.submit_blocking(register_mouse)?;
 
     // Register root role

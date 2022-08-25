@@ -6,6 +6,7 @@ use iroha::samples::get_config;
 use iroha_core::genesis::{
     GenesisNetwork, GenesisNetworkTrait, RawGenesisBlock, RawGenesisBlockBuilder,
 };
+use iroha_crypto::KeyPair;
 use iroha_data_model::prelude::*;
 use test_network::{
     get_key_pair, wait_for_genesis_committed, Peer as TestPeer, PeerBuilder, TestRuntime,
@@ -65,12 +66,13 @@ fn create_million_accounts_directly() {
     wait_for_genesis_committed(&vec![test_client.clone()], 0);
     for i in 0_u32..1_000_000_u32 {
         let domain_id: DomainId = format!("wonderland-{}", i).parse().expect("Valid");
-        let normal_account_id = AccountId::new(
-            format!("bob-{}", i).parse().expect("Valid"),
-            domain_id.clone(),
-        );
+        let normal_account_id = {
+            let alias = Alias::new(format!("bob-{}", i).parse().expect("Valid"), domain_id.clone());
+            let (public_key, _) = KeyPair::generate().expect("Valid").into();
+            AccountId::new(public_key, alias)
+        };
         let create_domain = RegisterBox::new(Domain::new(domain_id));
-        let create_account = RegisterBox::new(Account::new(normal_account_id.clone(), []));
+        let create_account = RegisterBox::new(Account::from_id(normal_account_id.clone()));
         if test_client
             .submit_all([create_domain.into(), create_account.into()].to_vec())
             .is_err()

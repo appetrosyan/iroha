@@ -11,6 +11,7 @@ mod http_default;
 /// Module containing sample configurations for tests and benchmarks.
 pub mod samples {
     use iroha_config::torii::uri;
+    use iroha_core::tx::AccountId;
     use iroha_crypto::KeyPair;
 
     use super::Configuration;
@@ -20,9 +21,9 @@ pub mod samples {
     pub fn get_client_config(key_pair: &KeyPair) -> Configuration {
         let (public_key, private_key) = key_pair.clone().into();
         Configuration {
-            public_key,
+            public_key: public_key.clone(),
             private_key,
-            account_id: "alice@wonderland".parse().expect("Should not fail."),
+            account_id: AccountId::new(public_key, "alice@wonderland".parse().expect("Should not fail.")),
             torii_api_url: iroha_primitives::small::SmallStr::from_str(uri::DEFAULT_API_URL),
             ..Configuration::default()
         }

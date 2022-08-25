@@ -17,8 +17,8 @@ pub type Outcome = color_eyre::Result<()>;
 // The reason for hard-coding this default is to ensure that the
 // algorithm is matched to the public key. If you need to change
 // either, you should definitely change both.
-static DEFAULT_PUBLIC_KEY: &str =
-    "ed01207233bfc89dcbd68c19fde6ce6158225298ec1131b6a130d1aeb454c1ab5183c0";
+// static DEFAULT_PUBLIC_KEY: &str =
+//     "ed01207233bfc89dcbd68c19fde6ce6158225298ec1131b6a130d1aeb454c1ab5183c0";
 // static DEFAULT_ALGORITHM: &str = iroha_crypto::ED_25519;
 
 fn main() -> Outcome {
@@ -189,27 +189,28 @@ mod genesis {
     }
 
     pub fn generate_default() -> color_eyre::Result<RawGenesisBlock> {
-        let mut result = RawGenesisBlockBuilder::new()
-            .domain("wonderland".parse()?)
-            .with_account("alice".parse()?, crate::DEFAULT_PUBLIC_KEY.parse()?)
-            .with_asset("rose".parse()?, AssetValueType::Quantity)
-            .finish_domain()
-            .build();
-        let mint = MintBox::new(
-            iroha_data_model::prelude::Value::U32(13_u32),
-            iroha_data_model::IdBox::AssetId(iroha_data_model::prelude::AssetId::new(
-                "rose#wonderland".parse()?,
-                "alice@wonderland".parse()?,
-            )),
-        );
+        // let mut result = RawGenesisBlockBuilder::new()
+        //     .domain("wonderland".parse()?)
+        //     .with_account("alice".parse()?, crate::DEFAULT_PUBLIC_KEY.parse()?)
+        //     .with_asset("rose".parse()?, AssetValueType::Quantity)
+        //     .finish_domain()
+        //     .build();
+        // let mint = MintBox::new(
+        //     iroha_data_model::prelude::Value::U32(13_u32),
+        //     iroha_data_model::IdBox::AssetId(iroha_data_model::prelude::AssetId::new(
+        //         "rose#wonderland".parse()?,
+        //         "alice@wonderland".parse()?,
+        //     )),
+        // );
 
-        result.transactions[0].isi.extend(
-            public_blockchain::default_permission_token_definitions()
-                .into_iter()
-                .map(|token_definition| RegisterBox::new(token_definition.clone()).into()),
-        );
-        result.transactions[0].isi.push(mint.into());
-        Ok(result)
+        // result.transactions[0].isi.extend(
+        //     public_blockchain::default_permission_token_definitions()
+        //         .into_iter()
+        //         .map(|token_definition| RegisterBox::new(token_definition.clone()).into()),
+        // );
+        // result.transactions[0].isi.push(mint.into());
+        // Ok(result)
+        todo!()
     }
 }
 

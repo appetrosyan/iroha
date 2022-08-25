@@ -114,8 +114,12 @@ impl TransactionValidator {
         // Therefore, this instruction execution validates before actually executing
         let wsv = WorldStateView::clone(&self.wsv);
 
+        let domain = account_id.domain_id().ok_or(TransactionRejectionReason::NotPermitted(NotPermittedFail {
+            reason: "Account not registered to any domain.".to_owned(),
+        }))?;
+                                                   
         if !wsv
-            .domain(&account_id.domain_id)
+            .domain(domain)
             .map_err(|_e| {
                 TransactionRejectionReason::NotPermitted(NotPermittedFail {
                     reason: "Domain not found in Iroha".to_owned(),
@@ -427,8 +431,12 @@ mod tests {
             message: "Will fail".to_owned(),
         }
         .into();
+        let alias = Alias::from_str("root@global").expect("Valid");
+        let public_key = KeyPair::generate().expect("Valid").public_key().clone();
+        let addr = AccountId::new(public_key, alias);
+
         let tx = Transaction::new(
-            AccountId::from_str("root@global").expect("Valid"),
+            addr,
             vec![inst; DEFAULT_MAX_INSTRUCTION_NUMBER as usize + 1].into(),
             1000,
         );

@@ -160,6 +160,7 @@ mod tests {
 
     use std::str::FromStr as _;
 
+    use iroha_crypto::KeyPair;
     use iroha_data_model::{domain::IpfsPath, prelude::*};
 
     use super::*;
@@ -214,8 +215,11 @@ mod tests {
 
     #[test]
     fn decode_trigger_sample() {
-        let account_id =
-            <Account as Identifiable>::Id::from_str("alice@wonderland").expect("Valid");
+        let account_id = {
+            let alias = Alias::from_str("alice@wonderland").expect("Valid");
+            let (public_key, _) = KeyPair::generate().expect("Valid").into();
+            AccountId::new(public_key, alias)
+        };
         let rose_definition_id = <AssetDefinition as Identifiable>::Id::new(
             "rose".parse().expect("Valid"),
             "wonderland".parse().expect("Valid"),

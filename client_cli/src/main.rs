@@ -134,17 +134,12 @@ fn main() -> Result<()> {
         Configuration::from_str("config.json")?
     };
     let Configuration(config) = config;
-    println!(
-        "User: {}@{}",
-        config.account_id.name, config.account_id.domain_id
-    );
+    println!("{}", config.account_id);
     #[cfg(debug_assertions)]
     eprintln!(
         "{}",
         &serde_json::to_string(&config).wrap_err("Failed to serialize configuration.")?
     );
-    #[cfg(not(debug_assertions))]
-    eprintln!("This is a release build, debug information omitted from messages");
     subcommand.run(&config)?;
     Ok(())
 }
@@ -161,13 +156,10 @@ pub fn submit(
 ) -> Result<()> {
     let instruction = instruction.into();
     let iroha_client = Client::new(cfg)?;
-    #[cfg(debug_assertions)]
     let err_msg = format!(
         "Failed to build transaction from instruction {:?}",
         instruction
     );
-    #[cfg(not(debug_assertions))]
-    let err_msg = "Failed to build transaction.";
     let tx = iroha_client
         .build_transaction(vec![instruction].into(), metadata)
         .wrap_err(err_msg)?;
@@ -186,10 +178,7 @@ pub fn submit(
             .wrap_err("Failed to show interactive prompt.")? => iroha_client.sign_transaction(original_transaction).wrap_err("Failed to sign transaction.")?,
         _ => tx,
     };
-    #[cfg(debug_assertions)]
     let err_msg = format!("Failed to submit transaction {:?}", tx);
-    #[cfg(not(debug_assertions))]
-    let err_msg = "Failed to submit transaction.";
     iroha_client.submit_transaction(tx).wrap_err(err_msg)?;
     Ok(())
 }
@@ -343,7 +332,7 @@ mod account {
     pub struct Register {
         /// Id of account in form `name@domain_name'
         #[structopt(short, long)]
-        pub id: AccountId,
+        pub alias: Alias,
         /// Its public key
         #[structopt(short, long)]
         pub key: PublicKey,
@@ -355,11 +344,11 @@ mod account {
     impl RunArgs for Register {
         fn run(self, cfg: &ClientConfiguration) -> Result<()> {
             let Self {
-                id,
+                alias,
                 key,
                 metadata: Metadata(metadata),
             } = self;
-            let create_account = RegisterBox::new(Account::new(id, [key]));
+            let create_account = RegisterBox::new(Account::new(alias, [key]));
             submit(create_account, cfg, metadata).wrap_err("Failed to register account")
         }
     }
@@ -407,17 +396,18 @@ mod account {
 
     impl RunArgs for SignatureCondition {
         fn run(self, cfg: &ClientConfiguration) -> Result<()> {
-            let account = Account::new(cfg.account_id.clone(), []);
-            let Self {
-                condition: Signature(condition),
-                metadata: Metadata(metadata),
-            } = self;
-            submit(
-                MintBox::new(account, EvaluatesTo::new_unchecked(condition.into())),
-                cfg,
-                metadata,
-            )
-            .wrap_err("Failed to set signature condition")
+            // let account = Account::new(cfg.account_id.clone(), []);
+            // let Self {
+            //     condition: Signature(condition),
+            //     metadata: Metadata(metadata),
+            // } = self;
+            // submit(
+            //     MintBox::new(account, EvaluatesTo::new_unchecked(condition.into())),
+            //     cfg,
+            //     metadata,
+            // )
+            // .wrap_err("Failed to set signature condition")
+            todo!()
         }
     }
 
@@ -446,7 +436,7 @@ mod account {
     pub struct Grant {
         /// Account id
         #[structopt(short, long)]
-        pub id: <Account as Identifiable>::Id,
+        pub id: Alias,
         /// The JSON file with a permission token
         #[structopt(short, long)]
         pub permission: Permission,
@@ -481,8 +471,9 @@ mod account {
                 permission,
                 metadata: Metadata(metadata),
             } = self;
-            let grant = GrantBox::new(permission.0, id);
-            submit(grant, cfg, metadata).wrap_err("Failed to grant the permission to the account")
+            // let grant = GrantBox::new(permission.0, id);
+            // submit(grant, cfg, metadata).wrap_err("Failed to grant the permission to the account")
+            todo!()
         }
     }
 
@@ -491,18 +482,19 @@ mod account {
     pub struct ListPermissions {
         /// Account id
         #[structopt(short, long)]
-        id: <Account as Identifiable>::Id,
+        id: Alias,
     }
 
     impl RunArgs for ListPermissions {
         fn run(self, cfg: &ClientConfiguration) -> Result<()> {
-            let client = Client::new(cfg)?;
-            let find_all_permissions = FindPermissionTokensByAccountId { id: self.id.into() };
-            let permissions = client
-                .request(find_all_permissions)
-                .wrap_err("Failed to get all account permissions")?;
-            println!("{:#?}", permissions);
-            Ok(())
+            // let client = Client::new(cfg)?;
+            // let find_all_permissions = FindPermissionTokensByAccountId { id: self.id.into() };
+            // let permissions = client
+            //     .request(find_all_permissions)
+            //     .wrap_err("Failed to get all account permissions")?;
+            // println!("{:#?}", permissions);
+            // Ok(())
+            todo!()
         }
     }
 }
@@ -581,7 +573,7 @@ mod asset {
     pub struct Mint {
         /// Account id where asset is stored (in form of `name@domain_name')
         #[structopt(long)]
-        pub account: AccountId,
+        pub account: Alias,
         /// Asset id from which to mint (in form of `name#domain_name')
         #[structopt(long)]
         pub asset: AssetDefinitionId,
@@ -601,11 +593,12 @@ mod asset {
                 quantity,
                 metadata: Metadata(metadata),
             } = self;
-            let mint_asset = MintBox::new(
-                Value::U32(quantity),
-                IdBox::AssetId(AssetId::new(asset, account)),
-            );
-            submit(mint_asset, cfg, metadata).wrap_err("Failed to mint asset of type `Value::U32`")
+            // let mint_asset = MintBox::new(
+            //     Value::U32(quantity),
+            //     IdBox::AssetId(AssetId::new(asset, account)),
+            // );
+            // submit(mint_asset, cfg, metadata).wrap_err("Failed to mint asset of type `Value::U32`")
+            todo!()
         }
     }
 
@@ -614,10 +607,10 @@ mod asset {
     pub struct Transfer {
         /// Account from which to transfer (in form `name@domain_name')
         #[structopt(short, long)]
-        pub from: AccountId,
+        pub from: Alias,
         /// Account from which to transfer (in form `name@domain_name')
         #[structopt(short, long)]
-        pub to: AccountId,
+        pub to: Alias,
         /// Asset id to transfer (in form like `name#domain_name')
         #[structopt(short, long)]
         pub asset_id: AssetDefinitionId,
@@ -639,9 +632,9 @@ mod asset {
                 metadata: Metadata(metadata),
             } = self;
             let transfer_asset = TransferBox::new(
-                IdBox::AssetId(AssetId::new(asset_id.clone(), from)),
+                AssetId::aliased(asset_id.clone(), from),
                 Value::U32(quantity),
-                IdBox::AssetId(AssetId::new(asset_id, to)),
+                AssetId::aliased(asset_id, to),
             );
             submit(transfer_asset, cfg, metadata).wrap_err("Failed to transfer asset")
         }
@@ -652,7 +645,7 @@ mod asset {
     pub struct Get {
         /// Account where asset is stored (in form of `name@domain_name')
         #[structopt(long)]
-        pub account: AccountId,
+        pub account: Alias,
         /// Asset name to lookup (in form of `name#domain_name')
         #[structopt(long)]
         pub asset: AssetDefinitionId,
@@ -662,12 +655,7 @@ mod asset {
         fn run(self, cfg: &ClientConfiguration) -> Result<()> {
             let Self { account, asset } = self;
             let iroha_client = Client::new(cfg)?;
-            let asset_id = AssetId::new(asset, account);
-            let value = iroha_client
-                .request(asset::by_id(asset_id))
-                .wrap_err("Failed to get asset.")?;
-            println!("Get Asset result: {:?}", value);
-            Ok(())
+            todo!()
         }
     }
 

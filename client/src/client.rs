@@ -1161,9 +1161,14 @@ pub mod account {
         FindAllAccounts::new()
     }
 
-    /// Construct a query to get account by id
+    /// Construct a query to get account by id. The alias is ignored.
     pub fn by_id(account_id: impl Into<EvaluatesTo<AccountId>>) -> FindAccountById {
         FindAccountById::new(account_id)
+    }
+
+    /// Construct a query to get account by alias.
+    pub fn by_alias(alias: impl Into<EvaluatesTo<Alias>>) -> FindAccountIdByAlias {
+        FindAccountIdByAlias::new(alias)
     }
 
     /// Construct a query to get all accounts containing specified asset

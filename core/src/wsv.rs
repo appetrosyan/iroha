@@ -599,7 +599,7 @@ impl WorldStateView {
         id: &AccountId,
         f: impl FnOnce(&Account) -> T,
     ) -> Result<T, QueryError> {
-        let domain = self.domain(&id.domain_id)?;
+        let domain = self.domain(id.domain_id().ok_or(QueryError::BareAccount)?)?;
         let account = domain.account(id).ok_or(QueryError::Unauthorized)?;
         Ok(f(account))
     }
@@ -613,7 +613,7 @@ impl WorldStateView {
         id: &AccountId,
         f: impl FnOnce(&mut Account) -> Result<AccountEvent, Error>,
     ) -> Result<(), Error> {
-        self.modify_domain(&id.domain_id, |domain| {
+        self.modify_domain(id.domain_id().ok_or(Error::BareAccount)?, |domain| {
             let account = domain
                 .account_mut(id)
                 .ok_or_else(|| FindError::Account(id.clone()))?;

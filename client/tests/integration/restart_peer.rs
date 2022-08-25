@@ -21,8 +21,8 @@ fn restarted_peer_should_have_the_same_asset_amount() -> Result<()> {
     let mut peer = <TestPeer>::new()?;
     configuration.sumeragi.trusted_peers.peers = std::iter::once(peer.id.clone()).collect();
 
-    let account_id = AccountId::from_str("alice@wonderland").unwrap();
-    let asset_definition_id = AssetDefinitionId::from_str("xor#wonderland").unwrap();
+    let account_id = Alias::from_str("alice@wonderland")?.alice_key();
+    let asset_definition_id = AssetDefinitionId::from_str("xor#wonderland")?;
     let create_asset = RegisterBox::new(AssetDefinition::quantity(asset_definition_id.clone()));
     let quantity: u32 = 200;
 

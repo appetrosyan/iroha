@@ -14,7 +14,7 @@ fn find_accounts_with_asset() -> Result<()> {
 
     // Registering new asset definition
     let definition_id =
-        <AssetDefinition as Identifiable>::Id::from_str("test_coin#wonderland").expect("Valid");
+        <AssetDefinition as Identifiable>::Id::from_str("test_coin#wonderland")?;
     let asset_definition = AssetDefinition::quantity(definition_id.clone());
     test_client.submit_blocking(RegisterBox::new(asset_definition.clone()))?;
 
@@ -25,11 +25,11 @@ fn find_accounts_with_asset() -> Result<()> {
     assert_eq!(received_asset_definition, asset_definition.clone().build());
 
     let accounts: [AccountId; 5] = [
-        "alice@wonderland".parse().expect("Valid"),
-        "mad_hatter@wonderland".parse().expect("Valid"),
-        "cheshire_cat@wonderland".parse().expect("Valid"),
-        "caterpillar@wonderland".parse().expect("Valid"),
-        "white_rabbit@wonderland".parse().expect("Valid"),
+        "alice@wonderland".parse::<Alias>()?.alice_key(),
+        "mad_hatter@wonderland".parse::<Alias>()?.fresh_key(),
+        "cheshire_cat@wonderland".parse::<Alias>()?.fresh_key(),
+        "caterpillar@wonderland".parse::<Alias>()?.fresh_key(),
+        "white_rabbit@wonderland".parse::<Alias>()?.fresh_key(),
     ];
 
     // Registering accounts
@@ -37,7 +37,7 @@ fn find_accounts_with_asset() -> Result<()> {
         .iter()
         .skip(1) // Alice has already been registered in genesis
         .cloned()
-        .map(|account_id| RegisterBox::new(Account::new(account_id, [])).into())
+        .map(|account_id| RegisterBox::new(Account::from_id(account_id)).into())
         .collect::<Vec<_>>();
     test_client.submit_all_blocking(register_accounts)?;
 

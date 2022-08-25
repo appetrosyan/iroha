@@ -122,7 +122,7 @@ fn find_roles_by_account_id() -> Result<()> {
     wait_for_genesis_committed(&vec![test_client.clone()], 0);
 
     let role_ids = create_role_ids();
-    let alice_id: <Account as Identifiable>::Id = "alice@wonderland".parse().expect("Valid");
+    let alice_id: <Account as Identifiable>::Id = "alice@wonderland".parse::<Alias>()?.alice_key();
 
     // Registering roles
     let register_roles = role_ids

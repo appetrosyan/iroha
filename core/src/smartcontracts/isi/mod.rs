@@ -47,6 +47,9 @@ pub mod error {
     /// Instruction execution error type
     #[derive(Debug, Error)]
     pub enum Error {
+        /// Bare accounts have no alias. Require an account with alias
+        #[error("Bare accounts have no alias. Require an account with alias")]
+        BareAccount,
         /// Failed to find some entity
         #[error("Failed to find. {0}")]
         Find(#[from] Box<FindError>),
@@ -614,9 +617,10 @@ mod tests {
 
     fn world_with_test_domains() -> Result<World> {
         let mut domain = Domain::new(DomainId::from_str("wonderland")?).build();
-        let account_id = AccountId::from_str("alice@wonderland")?;
+        let account_id = Alias::from_str("alice@wonderland")?;
         let (public_key, _) = KeyPair::generate()?.into();
-        let account = Account::new(account_id.clone(), [public_key]).build();
+        let account_id = AccountId::new(public_key, account_id);
+        let account = Account::from_id(account_id.clone()).build();
         assert!(domain.add_account(account).is_none());
         let asset_definition_id = AssetDefinitionId::from_str("rose#wonderland")?;
         assert!(domain
@@ -631,7 +635,11 @@ mod tests {
     #[test]
     fn asset_store() -> Result<()> {
         let wsv = WorldStateView::new(world_with_test_domains()?);
-        let account_id = AccountId::from_str("alice@wonderland")?;
+        let account_id = {
+            let alias = Alias::from_str("alice@wonderland")?;
+            let (public_key, _) = KeyPair::generate().expect("Valid").into();
+            AccountId::new(public_key, alias)
+        };
         let asset_definition_id = AssetDefinitionId::from_str("rose#wonderland")?;
         let asset_id = AssetId::new(asset_definition_id, account_id.clone());
         SetKeyValueBox::new(
@@ -659,7 +667,11 @@ mod tests {
     #[test]
     fn account_metadata() -> Result<()> {
         let wsv = WorldStateView::new(world_with_test_domains()?);
-        let account_id = AccountId::from_str("alice@wonderland")?;
+        let account_id = {
+            let alias = Alias::from_str("alice@wonderland")?;
+            let (public_key, _) = KeyPair::generate().expect("Valid").into();
+            AccountId::new(public_key, alias)
+        };
         SetKeyValueBox::new(
             IdBox::from(account_id.clone()),
             Name::from_str("Bytes")?,
@@ -687,7 +699,11 @@ mod tests {
     fn asset_definition_metadata() -> Result<()> {
         let wsv = WorldStateView::new(world_with_test_domains()?);
         let definition_id = AssetDefinitionId::from_str("rose#wonderland")?;
-        let account_id = AccountId::from_str("alice@wonderland")?;
+        let account_id = {
+            let alias = Alias::from_str("alice@wonderland")?;
+            let (public_key, _) = KeyPair::generate().expect("Valid").into();
+            AccountId::new(public_key, alias)
+        };
         SetKeyValueBox::new(
             IdBox::from(definition_id.clone()),
             Name::from_str("Bytes")?,
@@ -715,7 +731,11 @@ mod tests {
     fn domain_metadata() -> Result<()> {
         let wsv = WorldStateView::new(world_with_test_domains()?);
         let domain_id = DomainId::from_str("wonderland")?;
-        let account_id = AccountId::from_str("alice@wonderland")?;
+        let account_id = {
+            let alias = Alias::from_str("alice@wonderland")?;
+            let (public_key, _) = KeyPair::generate().expect("Valid").into();
+            AccountId::new(public_key, alias)
+        };
         SetKeyValueBox::new(
             IdBox::from(domain_id.clone()),
             Name::from_str("Bytes")?,
@@ -741,7 +761,11 @@ mod tests {
     #[test]
     fn executing_unregistered_trigger_should_return_error() -> Result<()> {
         let wsv = WorldStateView::new(world_with_test_domains()?);
-        let account_id = AccountId::from_str("alice@wonderland")?;
+        let account_id = {
+            let alias = Alias::from_str("alice@wonderland")?;
+            let public_key = KeyPair::generate().expect("Valid").public_key().clone();
+            AccountId::new(public_key.clone(), alias)
+        };
         let trigger_id = TriggerId::from_str("test_trigger_id")?;
 
         assert!(matches!(
@@ -757,16 +781,16 @@ mod tests {
     #[test]
     fn unauthorized_trigger_execution_should_return_error() -> Result<()> {
         let wsv = WorldStateView::new(world_with_test_domains()?);
-        let account_id = AccountId::from_str("alice@wonderland")?;
-        let fake_account_id = AccountId::from_str("fake@wonderland")?;
+        let alias = Alias::from_str("alice@wonderland")?;
+        let public_key = KeyPair::generate().expect("Valid").public_key().clone();
+        let account_id = AccountId::new(public_key.clone(), alias);
+
+        let fake_account_alias = Alias::from_str("fake@wonderland")?;
+        let fake_pub_key = KeyPair::generate().expect("Valid").public_key().clone();
+        let fake_account_id = AccountId::new(fake_pub_key.clone(), fake_account_alias);
         let trigger_id = TriggerId::from_str("test_trigger_id")?;
 
-        // register fake account
-        let (public_key, _) = KeyPair::generate()
-            .expect("Failed to generate KeyPair")
-            .into();
-        let register_account =
-            RegisterBox::new(Account::new(fake_account_id.clone(), [public_key]));
+        let register_account = RegisterBox::new(Account::from_id(fake_account_id.clone()));
         register_account.execute(account_id.clone(), &wsv)?;
 
         // register the trigger

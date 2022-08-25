@@ -5,13 +5,15 @@ use iroha_client::client;
 use iroha_core::prelude::*;
 use iroha_data_model::prelude::*;
 use test_network::*;
+pub use core::str::FromStr as _;
+
 
 #[test]
 fn must_execute_both_triggers() -> Result<()> {
     let (_rt, _peer, mut test_client) = <PeerBuilder>::new().start_with_runtime();
     wait_for_genesis_committed(&vec![test_client.clone()], 0);
 
-    let account_id: AccountId = "alice@wonderland".parse()?;
+    let account_id = "alice@wonderland".parse::<Alias>()?.alice_key();
     let asset_definition_id = "rose#wonderland".parse()?;
     let asset_id = AssetId::new(asset_definition_id, account_id.clone());
 
@@ -65,8 +67,8 @@ fn domain_scoped_trigger_must_be_executed_only_on_events_in_its_domain() -> Resu
 
     let create_neverland_domain = RegisterBox::new(Domain::new("neverland".parse()?));
 
-    let account_id: AccountId = "sapporo@neverland".parse()?;
-    let create_sapporo_account = RegisterBox::new(Account::new(account_id.clone(), []));
+    let account_id = "sapporo@neverland".parse::<Alias>()?.fresh_key();
+    let create_sapporo_account = RegisterBox::new(Account::from_id(account_id.clone()));
 
     let asset_definition_id: AssetDefinitionId = "sakura#neverland".parse()?;
     let create_sakura_asset_definition =

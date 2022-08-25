@@ -2,7 +2,11 @@ use super::*;
 
 #[test]
 fn add_register_domains_permission_denies_registering_domain() {
-    let alice_id = AccountId::from_str("alice@test0").expect("Valid");
+    let alice_id = {
+        let alias = Alias::from_str("alice@test0").expect("valid name");
+        let (public_key, _) = KeyPair::generate().expect("Valid").into();
+        AccountId::new(public_key, alias)
+    };
 
     let instruction = Instruction::Register(RegisterBox::new(Domain::new(
         "new_domain".parse().expect("Valid"),
@@ -17,7 +21,11 @@ fn add_register_domains_permission_denies_registering_domain() {
 
 #[test]
 fn add_register_domains_permission_allows_registering_account() {
-    let alice_id = AccountId::from_str("alice@test0").expect("Valid");
+    let alice_id = {
+        let alias = Alias::from_str("alice@test0").expect("valid name");
+        let (public_key, _) = KeyPair::generate().expect("Valid").into();
+        AccountId::new(public_key, alias)
+    };
 
     let instruction = Instruction::Register(RegisterBox::new(Account::new(
         "bob@test".parse().expect("Valid"),
@@ -33,13 +41,22 @@ fn add_register_domains_permission_allows_registering_account() {
 
 #[test]
 fn add_register_domains_permission_allows_registering_domain_with_right_token() {
-    let alice_id = AccountId::from_str("alice@test0").expect("Valid");
 
-    let mut alice = Account::new(alice_id.clone(), []).build();
+    let alice_id = {
+        let alias = Alias::from_str("alice@test0").expect("valid name");
+        let (public_key, _) = KeyPair::generate().expect("Valid").into();
+        AccountId::new(public_key, alias)
+    };
+
+    let mut alice = Account::from_id(alice_id.clone()).build();
     alice.add_permission(register::CanRegisterDomains::new().into());
 
-    let bob_id = AccountId::from_str("bob@test0").expect("Valid");
-    let bob = Account::new(bob_id.clone(), []).build();
+    let bob_id = {
+        let alias = Alias::from_str("bob@test0").expect("valid name");
+        let (public_key, _) = KeyPair::generate().expect("Valid").into();
+        AccountId::new(public_key, alias)
+    };
+    let bob = Account::from_id(bob_id.clone()).build();
 
     let domain_id = DomainId::from_str("test0").expect("Valid");
     let mut domain = Domain::new(domain_id).build();
@@ -60,9 +77,13 @@ fn add_register_domains_permission_allows_registering_domain_with_right_token() 
 
 #[test]
 fn add_register_domains_permission_denies_registering_domain_with_wrong_token() {
-    let alice_id = AccountId::from_str("alice@test0").expect("Valid");
+    let alice_id = {
+        let alias = Alias::from_str("alice@test0").expect("valid name");
+        let (public_key, _) = KeyPair::generate().expect("Valid").into();
+        AccountId::new(public_key, alias)
+    };
 
-    let mut alice = Account::new(alice_id.clone(), []).build();
+    let mut alice = Account::from_id(alice_id.clone()).build();
     alice.add_permission(PermissionToken::new(
         "incorrecttoken".parse().expect("Valid"),
     ));

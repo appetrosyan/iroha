@@ -22,8 +22,8 @@ use serde::{Deserialize, Serialize};
 use strum::EnumString;
 
 use crate::{
-    account::prelude::*, domain::prelude::*, ffi::ffi_item, metadata::Metadata, HasMetadata,
-    Identifiable, Name, ParseError, Registered, TryAsMut, TryAsRef, Value,
+    account::prelude::*, domain::prelude::*, ffi::ffi_item, metadata::Metadata, value::Value,
+    HasMetadata, Identifiable, Name, ParseError, Registered, TryAsMut, TryAsRef, prelude::EvaluatesTo, IdBox,
 };
 
 /// [`AssetsMap`] provides an API to work with collection of key ([`Id`]) - value
@@ -613,6 +613,14 @@ impl Id {
             account_id,
         }
     }
+
+    #[inline]
+    pub const fn aliased(
+        definition_id: <AssetDefinition as Identifiable>::Id,
+        alias: Alias
+    ) -> EvaluatesTo<IdBox> {
+        todo!()
+    }
 }
 
 impl Registered for Asset {
@@ -622,6 +630,7 @@ impl Registered for Asset {
 impl Registered for AssetDefinition {
     type With = NewAssetDefinition;
 }
+
 
 impl FromIterator<Asset> for Value {
     fn from_iter<T: IntoIterator<Item = Asset>>(iter: T) -> Self {

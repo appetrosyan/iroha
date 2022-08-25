@@ -339,6 +339,13 @@ pub mod query {
         }
     }
 
+    impl ValidQuery for FindAccountIdByAlias {
+        #[metrics("find_account_id_by_alias")]
+        fn execute(&self, wsv: &WorldStateView) -> Result<Self::Output, Error> {
+            todo!()
+        }
+    }
+
     impl ValidQuery for FindPermissionTokensByAccountId {
         #[metrics(+"find_permission_tokens_by_account_id")]
         fn execute(&self, wsv: &WorldStateView) -> Result<Self::Output, Error> {
@@ -393,8 +400,8 @@ pub mod query {
             let mut vec = Vec::new();
             for domain in wsv.domains().iter() {
                 for account in domain.accounts() {
-                    if account.id().name == name {
-                        vec.push(account.clone())
+                    if let Some(ref alias) = account.id().alias {
+                        if alias.name == name { vec.push(account.clone()) }
                     }
                 }
             }

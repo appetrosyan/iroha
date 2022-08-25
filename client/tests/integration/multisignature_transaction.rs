@@ -14,13 +14,13 @@ use super::Configuration;
 #[allow(clippy::too_many_lines)]
 #[ignore = "Multisignature is not working for now. See #2595"]
 #[test]
-fn multisignature_transactions_should_wait_for_all_signatures() {
+fn multisignature_transactions_should_wait_for_all_signatures() -> eyre::Result<()> {
     let (_rt, network, _) = <Network>::start_test_with_runtime(4, 1);
     wait_for_genesis_committed(&network.clients(), 0);
     let pipeline_time = Configuration::pipeline_time();
 
-    let alice_id = AccountId::from_str("alice@wonderland").expect("Valid");
     let alice_key_pair = get_key_pair();
+    let alice_id = Alias::from_str("alice@wonderland")?.key(alice_key_pair.public_key().clone());
     let key_pair_2 = KeyPair::generate().expect("Failed to generate KeyPair.");
     let asset_definition_id = AssetDefinitionId::from_str("camomile#wonderland").expect("Valid");
     let create_asset = RegisterBox::new(AssetDefinition::quantity(asset_definition_id.clone()));
@@ -33,7 +33,7 @@ fn multisignature_transactions_should_wait_for_all_signatures() {
                     key_pair_2.public_key().clone(),
                 ],
             )
-            .into(),
+                .into(),
         )),
         IdBox::AccountId(alice_id.clone()),
     );
@@ -110,4 +110,5 @@ fn multisignature_transactions_should_wait_for_all_signatures() {
         .find(|asset| *asset.id() == asset_id)
         .expect("Failed to find expected asset");
     assert_eq!(AssetValue::Quantity(quantity), *camomile_asset.value());
+    Ok(())
 }

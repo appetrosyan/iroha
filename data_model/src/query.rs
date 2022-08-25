@@ -18,7 +18,7 @@ use self::{
     trigger::*,
 };
 use crate::{
-    account::Account, pagination::Pagination, predicate::PredicateBox, Identifiable, Value,
+    account::Account, pagination::Pagination, predicate::PredicateBox, Identifiable, value::Value,
 };
 
 /// Sized container for all possible Queries.
@@ -43,6 +43,8 @@ pub enum QueryBox {
     FindAllAccounts(FindAllAccounts),
     /// [`FindAccountById`] variant.
     FindAccountById(FindAccountById),
+    /// [`FindAccountIdByAlias`] variant.
+    FindAccountIdByAlias(FindAccountIdByAlias),
     /// [`FindAccountKeyValueByIdAndKey`] variant.
     FindAccountKeyValueByIdAndKey(FindAccountKeyValueByIdAndKey),
     /// [`FindAccountsByName`] variant.
@@ -507,6 +509,33 @@ pub mod account {
         type Output = Account;
     }
 
+    /// [`FindAccountById`] Iroha Query finds an [`Account`] by it's identification.
+    #[derive(
+        Debug,
+        Display,
+        Clone,
+        PartialEq,
+        Eq,
+        Decode,
+        Encode,
+        Deserialize,
+        Serialize,
+        IntoSchema,
+        PartialOrd,
+        Ord,
+    )]
+    #[display(fmt = "Find `{}` account", alias)]
+    pub struct FindAccountIdByAlias {
+        /// `Id` of an account to find.
+        pub alias: EvaluatesTo<Alias>,
+    }
+
+    impl Query for FindAccountIdByAlias {
+        type Output = AccountId;
+    }
+
+
+
     /// [`FindAccountKeyValueByIdAndKey`] Iroha Query finds a [`Value`]
     /// of the key-value metadata pair in the specified account.
     #[derive(
@@ -616,7 +645,7 @@ pub mod account {
     impl FindAllAccounts {
         /// Construct [`FindAllAccounts`].
         pub const fn new() -> Self {
-            FindAllAccounts
+            Self
         }
     }
 
@@ -624,9 +653,16 @@ pub mod account {
         /// Construct [`FindAccountById`].
         pub fn new(id: impl Into<EvaluatesTo<AccountId>>) -> Self {
             let id = id.into();
-            FindAccountById { id }
+            Self { id }
         }
     }
+
+    impl FindAccountIdByAlias {
+        pub fn new(id: impl Into<EvaluatesTo<Alias>>) -> Self {
+            let alias = id.into();
+            Self { alias }
+        }
+    }    
 
     impl FindAccountKeyValueByIdAndKey {
         /// Construct [`FindAccountById`].
@@ -644,7 +680,7 @@ pub mod account {
         /// Construct [`FindAccountsByName`].
         pub fn new(name: impl Into<EvaluatesTo<Name>>) -> Self {
             let name = name.into();
-            FindAccountsByName { name }
+            Self { name }
         }
     }
 
@@ -652,7 +688,7 @@ pub mod account {
         /// Construct [`FindAccountsByDomainId`].
         pub fn new(domain_id: impl Into<EvaluatesTo<DomainId>>) -> Self {
             let domain_id = domain_id.into();
-            FindAccountsByDomainId { domain_id }
+            Self { domain_id }
         }
     }
 
@@ -660,7 +696,7 @@ pub mod account {
         /// Construct [`FindAccountsWithAsset`].
         pub fn new(asset_definition_id: impl Into<EvaluatesTo<AssetDefinitionId>>) -> Self {
             let asset_definition_id = asset_definition_id.into();
-            FindAccountsWithAsset {
+            Self {
                 asset_definition_id,
             }
         }
@@ -670,7 +706,7 @@ pub mod account {
     pub mod prelude {
         pub use super::{
             FindAccountById, FindAccountKeyValueByIdAndKey, FindAccountsByDomainId,
-            FindAccountsByName, FindAccountsWithAsset, FindAllAccounts,
+            FindAccountsByName, FindAccountsWithAsset, FindAllAccounts, FindAccountIdByAlias
         };
     }
 }
@@ -1351,7 +1387,7 @@ pub mod trigger {
     use super::Query;
     use crate::{
         domain::prelude::*, events::FilterBox, expression::EvaluatesTo, trigger::Trigger,
-        Identifiable, Name, Value,
+        Identifiable, Name, value::Value,
     };
 
     /// Find all currently active (as in not disabled and/or expired)

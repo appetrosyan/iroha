@@ -222,6 +222,7 @@ pub mod string {
 
         mod id_box {
             use super::*;
+            use iroha_crypto::KeyPair;
 
             #[test]
             fn simple_name_wrappers() {
@@ -295,7 +296,9 @@ pub mod string {
 
             #[test]
             fn account_id() {
-                let id = IdBox::AccountId("alice@wonderland".parse().expect("Valid"));
+                let alias = "alice@wonderland".parse().expect("Valid");
+                let (public_key, _) = KeyPair::generate().expect("Valid").into();
+                let id = IdBox::AccountId(crate::account::Id::new(public_key, alias));
                 assert!(Predicate::starts_with("alice@").applies(&id));
                 assert!(Predicate::ends_with("@wonderland").applies(&id));
                 assert!(Predicate::is("alice@wonderland").applies(&id));
@@ -314,7 +317,10 @@ pub mod string {
             #[test]
             fn asset_id() {
                 let definition_id = "rose#wonderland".parse().expect("Valid");
-                let account_id = "alice@wonderland".parse().expect("Valid");
+                let alias = "alice@wonderland".parse().expect("Valid");
+                let (public_key, _) = KeyPair::generate().expect("Valid").into();
+                let account_id = crate::account::Id::new(public_key, alias);
+                let _id = IdBox::AccountId(account_id.clone());
                 let id = IdBox::AssetId(crate::asset::Id {
                     definition_id,
                     account_id,
@@ -764,11 +770,14 @@ pub mod value {
     #[cfg(test)]
     #[allow(clippy::print_stdout, clippy::use_debug, clippy::expect_used)]
     mod test {
+        use account::Alias;
+        use core::str::FromStr as _;
+        use iroha_crypto::KeyPair;
         use peer::Peer;
         use prelude::Metadata;
 
         use super::*;
-        use crate::account::Account;
+        use crate::account::{Account, Id as AccountId};
 
         #[test]
         fn typing() {
@@ -776,9 +785,12 @@ pub mod value {
                 let pred = Predicate::Identifiable(string::Predicate::is("alice@wonderland"));
                 println!("{pred:?}");
                 assert!(pred.applies(&Value::String("alice@wonderland".to_owned())));
-                assert!(pred.applies(&Value::Id(IdBox::AccountId(
-                    "alice@wonderland".parse().expect("Valid")
-                ))));
+                let account_id = {
+                    let alias = Alias::from_str("alice@wonderland").expect("valid name");
+                    let (public_key, _) = KeyPair::generate().expect("Valid").into();
+                    AccountId::new(public_key, alias)
+                };
+                assert!(pred.applies(&Value::Id(IdBox::AccountId(account_id))));
                 assert!(
                     pred.applies(&Value::Identifiable(IdentifiableBox::NewAccount(Box::new(
                         Account::new("alice@wonderland".parse().expect("Valid"), [])

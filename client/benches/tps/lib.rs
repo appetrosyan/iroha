@@ -7,6 +7,7 @@ use std::{fmt, fs::File, io::BufReader, path::Path, str::FromStr as _, sync::mps
 
 use eyre::{Result, WrapErr};
 use iroha_client::client::Client;
+use iroha_crypto::KeyPair;
 use iroha_data_model::prelude::*;
 use iroha_permissions_validators::public_blockchain::{
     burn::CanBurnUserAssets, transfer::CanTransferUserAssets,
@@ -139,13 +140,19 @@ impl MeasurerUnit {
         let keypair =
             iroha_core::prelude::KeyPair::generate().expect("Failed to generate KeyPair.");
 
-        let account_id = account_id(self.name);
-        let alice_id = <Account as Identifiable>::Id::from_str("alice@wonderland")?;
+        let account_id = {
+            let alias = account_id(self.name);
+            AccountId::new(keypair.public_key().clone(), alias)
+        };
+        let alice_id = {
+            let alias = Alias::from_str("alice@wonderland")?;
+            let (public_key, _) = KeyPair::generate().expect("Valid").into();
+            AccountId::new(public_key, alias)
+        };
         let asset_id = asset_id(self.name);
 
-        let register_me = RegisterBox::new(Account::new(
-            account_id.clone(),
-            [keypair.public_key().clone()],
+        let register_me = RegisterBox::new(Account::from_id(
+            account_id.clone() ,
         ));
         self.client.submit_blocking(register_me)?;
 
@@ -241,11 +248,11 @@ impl MeasurerUnit {
 fn asset_id(account_name: UnitName) -> AssetId {
     AssetId::new(
         "rose#wonderland".parse().expect("Valid"),
-        account_id(account_name),
+        account_id(account_name).fresh_key(),
     )
 }
 
 #[allow(clippy::expect_used)]
-fn account_id(name: UnitName) -> AccountId {
+fn account_id(name: UnitName) -> Alias {
     format!("{}@wonderland", name).parse().expect("Valid")
 }

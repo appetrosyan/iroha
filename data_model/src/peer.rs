@@ -13,7 +13,7 @@ use iroha_schema::IntoSchema;
 use parity_scale_codec::{Decode, Encode};
 use serde::{Deserialize, Serialize};
 
-use crate::{Identifiable, PublicKey, Registered, Value};
+use crate::{Identifiable, PublicKey, Registered, value::Value};
 
 /// Peer represents Iroha instance.
 #[derive(

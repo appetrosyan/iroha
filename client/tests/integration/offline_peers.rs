@@ -6,7 +6,7 @@ use test_network::*;
 use tokio::runtime::Runtime;
 
 #[test]
-fn genesis_block_is_commited_with_some_offline_peers() {
+fn genesis_block_is_commited_with_some_offline_peers() -> eyre::Result<()> {
     prepare_test_for_nextest!();
     // Given
     let rt = Runtime::test();
@@ -15,16 +15,15 @@ fn genesis_block_is_commited_with_some_offline_peers() {
     wait_for_genesis_committed(&network.clients(), 1);
 
     //When
-    let alice_id: AccountId = "alice@wonderland".parse().expect("Valid");
+    let alice_id: AccountId = "alice@wonderland".parse::<Alias>()?.alice_key();
     let alice_has_roses = 13;
 
     //Then
     let assets = iroha_client
-        .request(client::asset::by_account_id(alice_id))
-        .expect("Failed to execute request.");
+        .request(client::asset::by_account_id(alice_id))?;
     let asset = assets
         .iter()
-        .find(|asset| asset.id().definition_id == "rose#wonderland".parse().expect("Valid"))
-        .unwrap();
+        .find(|asset| asset.id().definition_id == ("rose#wonderland".parse()).expect("Valid")).ok_or(eyre::eyre!("Failed to find asset. "))?;
     assert_eq!(AssetValue::Quantity(alice_has_roses), *asset.value());
+    Ok(())
 }

@@ -17,8 +17,16 @@ use tokio::{fs, runtime::Runtime};
 
 async fn measure_block_size_for_n_validators(n_validators: u32) {
     let dir = tempfile::tempdir().unwrap();
-    let alice_id = AccountId::from_str("alice@test").expect("tested");
-    let bob_id = AccountId::from_str("bob@test").expect("tested");
+    let alice_id = {
+        let alias = Alias::from_str("alice@test").expect("Valid");
+        let (public_key, _) = KeyPair::generate().expect("Valid").into();
+        AccountId::new(public_key, alias)
+    };
+    let bob_id = {
+        let alias = Alias::from_str("bob@test").expect("Valid");
+        let (public_key, _) = KeyPair::generate().expect("Valid").into();
+        AccountId::new(public_key, alias)
+    };
     let xor_id = AssetDefinitionId::from_str("xor#test").expect("tested");
     let alice_xor_id = <Asset as Identifiable>::Id::new(xor_id.clone(), alice_id);
     let bob_xor_id = <Asset as Identifiable>::Id::new(xor_id, bob_id);
@@ -29,7 +37,7 @@ async fn measure_block_size_for_n_validators(n_validators: u32) {
     });
     let keypair = KeyPair::generate().expect("Failed to generate KeyPair.");
     let tx = Transaction::new(
-        AccountId::from_str("alice@wonderland").expect("checked"),
+        AccountId::new(keypair.public_key().clone(), Alias::from_str("alice@wonderland").expect("checked")),
         vec![transfer].into(),
         1000,
     )

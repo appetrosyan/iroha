@@ -218,7 +218,7 @@ pub mod action {
     use iroha_primitives::atomic::AtomicU32;
 
     use super::*;
-    use crate::HasMetadata;
+    use crate::{prelude::Account, HasMetadata};
 
     /// Trait for common methods for all [`Action`]'s
     pub trait ActionTrait {
@@ -232,7 +232,7 @@ pub mod action {
         fn set_repeats(&mut self, repeats: Repeats);
 
         /// Get action technical account
-        fn technical_account(&self) -> &crate::account::Id;
+        fn technical_account(&self) -> &<Account as Identifiable>::Id;
 
         /// Get action metadata
         fn metadata(&self) -> &Metadata;
@@ -270,7 +270,7 @@ pub mod action {
         /// Technical account linked to this trigger. The technical
         /// account must already exist in order for `Register<Trigger>` to
         /// work.
-        pub technical_account: crate::account::Id,
+        pub technical_account: <Account as Identifiable>::Id,
         /// Defines events which trigger the `Action`
         pub filter: F,
         /// Metadata used as persistent storage for trigger data.
@@ -288,7 +288,7 @@ pub mod action {
         pub fn new(
             executable: impl Into<Executable>,
             repeats: impl Into<Repeats>,
-            technical_account: crate::account::Id,
+            technical_account: <Account as Identifiable>::Id,
             filter: F,
         ) -> Self {
             Self {
@@ -322,7 +322,7 @@ pub mod action {
             self.repeats = repeats;
         }
 
-        fn technical_account(&self) -> &crate::account::Id {
+        fn technical_account(&self) -> &<Account as Identifiable>::Id {
             &self.technical_account
         }
 

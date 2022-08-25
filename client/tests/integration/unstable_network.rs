@@ -3,10 +3,13 @@
 use std::{thread, time::Duration};
 
 use iroha_client::client::{self, Client};
+use iroha_crypto::KeyPair;
 use iroha_data_model::prelude::*;
 use iroha_logger::Level;
 use test_network::*;
 use tokio::runtime::Runtime;
+
+use std::str::FromStr as  _;
 
 use super::Configuration;
 
@@ -80,7 +83,11 @@ fn unstable_network(
 
     let pipeline_time = Configuration::pipeline_time();
 
-    let account_id: AccountId = "alice@wonderland".parse().expect("Valid");
+    let account_id = {
+        let alias = Alias::from_str("alice@wonderland").expect("valid name");
+        let (public_key, _) = KeyPair::generate().expect("Valid").into();
+        AccountId::new(public_key, alias)
+    };
     let asset_definition_id: AssetDefinitionId = "camomile#wonderland".parse().expect("Valid");
     let register_asset = RegisterBox::new(AssetDefinition::quantity(asset_definition_id.clone()));
     iroha_client

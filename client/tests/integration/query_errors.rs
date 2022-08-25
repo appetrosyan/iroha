@@ -5,15 +5,16 @@ use std::str::FromStr;
 use iroha_client::client::{self, ClientQueryError};
 use iroha_core::smartcontracts::{isi::query::Error as QueryError, FindError};
 use iroha_data_model::prelude::*;
+use test_network::FreshKeyTrait as _;
 
 #[test]
 fn non_existent_account_is_specific_error() {
     let (_rt, _peer, client) = <test_network::PeerBuilder>::new().start_with_runtime();
-    // we cannot wait for genesis committment
+    // we don't need to wait for genesis to be committed. 
 
     let err = client
         .request(client::account::by_id(
-            AccountId::from_str("john_doe@regalia").unwrap(),
+            Alias::from_str("john_doe@regalia").expect("valid name").fresh_key(),
         ))
         .expect_err("Should error");
 
@@ -24,4 +25,5 @@ fn non_existent_account_is_specific_error() {
         },
         x => panic!("Unexpected error: {:?}", x),
     };
+    todo!()
 }

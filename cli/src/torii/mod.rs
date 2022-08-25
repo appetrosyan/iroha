@@ -89,7 +89,7 @@ pub enum Error {
 pub(crate) const fn query_status_code(query_error: &query::Error) -> StatusCode {
     use query::Error::*;
     match query_error {
-        Decode(_) | Evaluate(_) | Conversion(_) => StatusCode::BAD_REQUEST,
+        BareAccount | Decode(_) | Evaluate(_) | Conversion(_) => StatusCode::BAD_REQUEST,
         Signature(_) | Unauthorized => StatusCode::UNAUTHORIZED,
         Permission(_) => StatusCode::FORBIDDEN,
         Find(_) => StatusCode::NOT_FOUND,

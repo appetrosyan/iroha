@@ -4,7 +4,10 @@
 use alloc::{format, string::String, vec::Vec};
 use core::cmp::Ordering;
 
-use derive_more::Display;
+#[cfg(not(target_arch = "aarch64"))]
+use derive_more::Into;
+
+use derive_more::{AsRef, Deref, Display, From};
 use iroha_crypto::{Hash, HashOf, MerkleTree};
 use iroha_schema::IntoSchema;
 use parity_scale_codec::{Decode, Encode};
@@ -78,7 +81,74 @@ impl Ord for BlockValue {
     }
 }
 
+impl From<BlockValue> for crate::value::Value {
+    fn from(block_value: BlockValue) -> Self {
+        crate::value::Value::Block(block_value.into())
+    }
+}
+
+#[cfg(target_arch = "aarch64")]
+impl From<BlockValueWrapper> for BlockValue {
+    fn from(block_value: BlockValueWrapper) -> Self {
+        *block_value.0
+    }
+}
+
+impl IntoSchema for BlockValueWrapper {
+    fn type_name() -> String {
+        BlockValue::type_name()
+    }
+
+    fn schema(map: &mut iroha_schema::MetaMap) {
+        BlockValue::schema(map);
+    }
+}
+
+/// Cross-platform wrapper for `BlockValue`.
+#[cfg(target_arch = "aarch64")]
+#[derive(
+    AsRef,
+    Clone,
+    Debug,
+    Decode,
+    Deref,
+    Deserialize,
+    Encode,
+    Eq,
+    From,
+    Ord,
+    PartialEq,
+    PartialOrd,
+    Serialize,
+)]
+#[as_ref(forward)]
+#[deref(forward)]
+#[from(forward)]
+#[serde(transparent)]
+pub struct BlockValueWrapper(Box<BlockValue>);
+
+/// Cross-platform wrapper for `BlockValue`.
+#[cfg(not(target_arch = "aarch64"))]
+#[derive(
+    AsRef,
+    Clone,
+    Debug,
+    Decode,
+    Deref,
+    Deserialize,
+    Encode,
+    Eq,
+    From,
+    Into,
+    Ord,
+    PartialEq,
+    PartialOrd,
+    Serialize,
+)]
+#[serde(transparent)]
+pub struct BlockValueWrapper(BlockValue);
+
 /// The prelude re-exports most commonly used traits, structs and macros from this crate.
 pub mod prelude {
-    pub use super::{BlockHeaderValue, BlockValue};
+    pub use super::{BlockHeaderValue, BlockValue, BlockValueWrapper};
 }

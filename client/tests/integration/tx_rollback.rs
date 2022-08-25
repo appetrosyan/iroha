@@ -16,7 +16,11 @@ fn client_sends_transaction_with_invalid_instruction_should_not_see_any_changes(
     let pipeline_time = Configuration::pipeline_time();
 
     //When
-    let account_id = AccountId::from_str("alice@wonderland").expect("Valid");
+    let account_id = {
+        let alias = Alias::from_str("alice@wonderland").expect("valid name");
+        let (public_key, _) = test_network::get_key_pair().into();
+        AccountId::new(public_key, alias)
+    };
     let asset_definition_id = AssetDefinitionId::from_str("xor#wonderland").expect("Valid");
     let wrong_asset_definition_id = AssetDefinitionId::from_str("ksor#wonderland").expect("Valid");
     let create_asset = RegisterBox::new(AssetDefinition::quantity(asset_definition_id));

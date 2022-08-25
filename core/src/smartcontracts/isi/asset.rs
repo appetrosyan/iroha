@@ -519,10 +519,14 @@ pub mod query {
             let mut assets = Vec::new();
             for account in domain.accounts() {
                 for asset in account.assets() {
-                    if asset.id().account_id.domain_id == domain_id
-                        && asset.id().definition_id == asset_definition_id
-                    {
-                        assets.push(asset.clone())
+                    if let Some(domain) = asset.id().account_id.domain_id() {
+                        if *domain == domain_id
+                            && asset.id().definition_id == asset_definition_id
+                        {
+                            assets.push(asset.clone())
+                        }
+                    } else {
+                        todo!()
                     }
                 }
             }

@@ -13,7 +13,7 @@ use iroha_schema::IntoSchema;
 use parity_scale_codec::{Decode, Encode};
 use serde::{Deserialize, Serialize};
 
-use crate::{Name, Value};
+use crate::{Name, value::Value};
 
 /// Collection of parameters by their names.
 pub type UnlimitedMetadata = btree_map::BTreeMap<Name, Value>;

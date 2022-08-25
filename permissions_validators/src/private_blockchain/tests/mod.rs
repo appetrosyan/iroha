@@ -40,8 +40,14 @@ struct TestEnv {
 impl TestEnv {
     /// Create a test environment
     fn new() -> Self {
-        let alice_id = AccountId::from_str("alice@wonderland").expect("Valid");
-        let mut alice = Account::new(alice_id.clone(), []).build();
+        let alice_id = {
+            let alias = Alias::from_str("alice@wonderland").expect("Valid");
+            let (public_key, _) = KeyPair::generate().expect("Valid").into();
+            AccountId::new(public_key, alias)
+        };
+        let mut alice = Account::from_id(alice_id.clone()).build();
+
+       
 
         let gold_asset_definition_id =
             AssetDefinitionId::from_str("gold#wonderland").expect("Valid");
@@ -50,8 +56,13 @@ impl TestEnv {
 
         alice.add_asset(gold_asset);
 
-        let bob_id = AccountId::from_str("bob@wonderland").expect("Valid");
-        let mut bob = Account::new(bob_id.clone(), []).build();
+        let bob_id = {
+            let alias = Alias::from_str("bob@wonderland").expect("valid name");
+            let (public_key, _) = KeyPair::generate().expect("Valid").into();
+            AccountId::new(public_key, alias)
+        };
+        
+        let mut bob = Account::from_id(bob_id.clone()).build();
 
         let silver_asset_definition_id =
             AssetDefinitionId::from_str("silver#wonderland").expect("Valid");
@@ -60,8 +71,13 @@ impl TestEnv {
 
         bob.add_asset(silver_asset);
 
-        let carol_id = AccountId::from_str("carol@denoland").expect("Valid");
-        let mut carol = Account::new(carol_id.clone(), []).build();
+
+        let carol_id = {
+            let alias = Alias::from_str("alice@wonderland").expect("valid name");
+            let (public_key, _) = KeyPair::generate().expect("Valid").into();
+            AccountId::new(public_key, alias)
+        };
+        let mut carol = Account::from_id(carol_id.clone()).build();
 
         let bronze_asset_definition_id =
             AssetDefinitionId::from_str("bronze#denoland").expect("Valid");

@@ -1,31 +1,30 @@
 {
-    "id": {
+  "id": {
+    "alias": {
         "name": "alice",
         "domain_id": {
             "name": "wonderland"
         }
     },
-    "assets": {},
-    "signatories": [],
-    "permission_tokens": [],
-    "signature_check_condition": {
-        "ContainsAny": {
-            "collection": {
-                "ContextValue": {
-                    "value_name": "transaction_signatories"
-                }
-            },
-            "elements": {
-                "ContextValue": {
-                    "value_name": "account_signatories"
-                }
-            }
+    "primary_key": "ed01201c61faf8fe94e253b93114240394f79a607b7fa55f9e5a41ebec74b88055768b"
+  },
+  "assets": {},
+  "signatories": [],
+  "permission_tokens": [],
+  "signature_check_condition": {
+    "ContainsAny": {
+      "collection": {
+        "ContextValue": {
+          "value_name": "transaction_signatories"
         }
-    },
-    "metadata": {
-        "hat": {
-            "Name": "white"
+      },
+      "elements": {
+        "ContextValue": {
+          "value_name": "account_signatories"
         }
-    },
-    "roles": []
+      }
+    }
+  },
+  "metadata": {},
+  "roles": []
 }

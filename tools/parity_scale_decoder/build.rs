@@ -7,14 +7,15 @@ use std::{fs, io::Result, path::PathBuf};
 use iroha_data_model::prelude::*;
 use parity_scale_codec::Encode;
 use serde::de::DeserializeOwned;
+use eyre::WrapErr as _;
 
-fn main() {
-    sample_into_binary_file::<Account>("account").expect("Failed to encode into account.bin.");
+fn main() -> eyre::Result<()> {
+    sample_into_binary_file::<Account>("account").wrap_err("Failed to decode sample `account.json`")?;
 
-    sample_into_binary_file::<Domain>("domain").expect("Failed to encode into domain.bin.");
+    sample_into_binary_file::<Domain>("domain").wrap_err("Failed to decode sample `domain.json`")?;
 
-    sample_into_binary_file::<Trigger<FilterBox>>("trigger")
-        .expect("Failed to encode into trigger.bin.");
+    sample_into_binary_file::<Trigger<FilterBox>>("trigger").wrap_err("Failed to decode sample `trigger`")?;
+    Ok(())
 }
 
 fn sample_into_binary_file<T>(filename: &str) -> Result<()>

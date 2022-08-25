@@ -22,7 +22,10 @@ use operation::*;
 use parity_scale_codec::{Decode, Encode};
 use serde::{Deserialize, Serialize};
 
-use super::{query::QueryBox, Value, ValueBox};
+use crate::{
+    query::QueryBox,
+    value::Value, prelude::{Alias, FindAccountIdByAlias}, IdBox,
+};
 
 /// Generate expression structure and basic impls for it.
 ///
@@ -255,6 +258,23 @@ impl EvaluatesTo<Value> {
     }
 }
 
+impl From<Alias> for ExpressionBox {
+    fn from(alias: Alias) -> Self {
+        Box::new(Expression::Query(QueryBox::FindAccountIdByAlias(FindAccountIdByAlias::new(alias))))
+    }
+}
+
+impl From<Alias> for EvaluatesTo<IdBox> {
+    fn from(alias: Alias) -> Self {
+        let expression = alias.into();
+        
+        Self {
+            expression,
+            _value_type: PhantomData,
+        }
+    }
+}
+
 impl<V: IntoSchema + TryFrom<Value>> IntoSchema for EvaluatesTo<V> {
     fn type_name() -> String {
         format!("{}::EvaluatesTo<{}>", module_path!(), V::type_name())
@@ -280,43 +300,43 @@ mod operation {
     //! Module containing operations and their priorities.
 
     /// Type of expression operation.
-    #[derive(Copy, Clone, PartialEq, Eq)]
-    pub enum Operation {
-        MethodCall,
-        RaiseTo,
-        Multiply,
-        Divide,
-        Mod,
-        Add,
-        Subtract,
-        Greater,
-        Less,
-        Equal,
-        Not,
-        And,
-        Or,
-        Other,
-    }
+        #[derive(Copy, Clone, PartialEq, Eq)]
+        pub enum Operation {
+            MethodCall,
+            RaiseTo,
+            Multiply,
+            Divide,
+            Mod,
+            Add,
+            Subtract,
+            Greater,
+            Less,
+            Equal,
+            Not,
+            And,
+            Or,
+            Other,
+        }
 
-    /// Priority of operation.
-    ///
-    /// [`First`](Operation::First) is the highest priority
-    /// and [`Ninth`](Operation::Ninth) is the lowest.
-    #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-    pub enum Priority {
-        First = 1,
-        Second = 2,
-        Third = 3,
-        Fourth = 4,
-        Fifth = 5,
-        Sixth = 6,
-        Seventh = 7,
-        Eighth = 8,
-        Ninth = 9,
-    }
+        /// Priority of operation.
+        ///
+        /// [`First`](Operation::First) is the highest priority
+        /// and [`Ninth`](Operation::Ninth) is the lowest.
+        #[derive(Debug, Copy, Clone, PartialEq, Eq)]
+        pub enum Priority {
+            First = 1,
+            Second = 2,
+            Third = 3,
+            Fourth = 4,
+            Fifth = 5,
+            Sixth = 6,
+            Seventh = 7,
+            Eighth = 8,
+            Ninth = 9,
+        }
 
-    impl Operation {
-        /// Get the priority of the operation.
+        impl Operation {
+/// Get the priority of the operation.
         ///
         /// Ordering is the same as in Python code.
         /// See [`here`](https://docs.python.org/3/reference/expressions.html#operator-precedence)
@@ -405,7 +425,7 @@ pub enum Expression {
     /// If expression.
     If(If),
     /// Raw value.
-    Raw(ValueBox),
+    Raw(Box<Value>),
     /// Query to Iroha state.
     Query(QueryBox),
     /// Contains expression for vectors.
@@ -430,83 +450,37 @@ impl Expression {
             Add(add) => add.len(),
             Subtract(subtract) => subtract.len(),
             Greater(greater) => greater.len(),
-            Less(less) => less.len(),
-            Equal(equal) => equal.len(),
-            Not(not) => not.len(),
-            And(and) => and.len(),
-            Or(or) => or.len(),
-            If(if_expression) => if_expression.len(),
-            Raw(raw) => raw.len(),
-            Query(query) => query.len(),
-            Contains(contains) => contains.len(),
-            ContainsAll(contains_all) => contains_all.len(),
-            ContainsAny(contains_any) => contains_any.len(),
-            Where(where_expression) => where_expression.len(),
-            ContextValue(context_value) => context_value.len(),
-            Multiply(multiply) => multiply.len(),
-            Divide(divide) => divide.len(),
-            Mod(modulus) => modulus.len(),
-            RaiseTo(raise_to) => raise_to.len(),
+                Less(less) => less.len(),
+                Equal(equal) => equal.len(),
+                Not(not) => not.len(),
+                And(and) => and.len(),
+                Or(or) => or.len(),
+                If(if_expression) => if_expression.len(),
+                Raw(raw) => raw.len(),
+                Query(query) => query.len(),
+                Contains(contains) => contains.len(),
+                ContainsAll(contains_all) => contains_all.len(),
+                ContainsAny(contains_any) => contains_any.len(),
+                Where(where_expression) => where_expression.len(),
+                ContextValue(context_value) => context_value.len(),
+                Multiply(multiply) => multiply.len(),
+                Divide(divide) => divide.len(),
+                Mod(modulus) => modulus.len(),
+                RaiseTo(raise_to) => raise_to.len(),
+            }
         }
     }
-}
 
-impl<T: Into<Value>> From<T> for ExpressionBox {
-    fn from(value: T) -> Self {
-        Expression::Raw(Box::new(value.into())).into()
-    }
-}
-
-/// Get a temporary value by name.
-/// The values are brought into [`Context`] by [`Where`] expression.
-//
-// Can't use `gen_expr_and_impls!` here because we need special type for `value_name`
-#[derive(
-    Debug,
-    Display,
-    Clone,
-    PartialEq,
-    Eq,
-    Decode,
-    Encode,
-    Deserialize,
-    Serialize,
-    IntoSchema,
-    PartialOrd,
-    Ord,
-)]
-#[display(fmt = "CONTEXT `{}`", value_name)]
-pub struct ContextValue {
-    /// Name bound to the value.
-    pub value_name: String,
-}
-
-impl ContextValue {
-    /// Number of underneath expressions.
-    #[inline]
-    pub const fn len(&self) -> usize {
-        1
-    }
-
-    /// Constructs `ContextValue`.
-    #[inline]
-    pub fn new(value_name: &str) -> Self {
-        Self {
-            value_name: String::from(value_name),
+    impl<T: Into<Value>> From<T> for ExpressionBox {
+        fn from(value: T) -> Self {
+            Expression::Raw(Box::new(value.into())).into()
         }
     }
-}
 
-impl From<ContextValue> for ExpressionBox {
-    #[inline]
-    fn from(expression: ContextValue) -> Self {
-        Expression::ContextValue(expression).into()
-    }
-}
-
-gen_expr_and_impls! {
-    /// Evaluates to the multiplication of left and right expressions.
-    /// Works only for [`Value::U32`]
+    /// Get a temporary value by name.
+    /// The values are brought into [`Context`] by [`Where`] expression.
+    //
+    // Can't use `gen_expr_and_impls!` here because we need special type for `value_name`
     #[derive(
         Debug,
         Display,
@@ -517,6 +491,52 @@ gen_expr_and_impls! {
         Encode,
         Deserialize,
         Serialize,
+        IntoSchema,
+        PartialOrd,
+        Ord,
+    )]
+    #[display(fmt = "CONTEXT `{}`", value_name)]
+    pub struct ContextValue {
+        /// Name bound to the value.
+        pub value_name: String,
+    }
+
+    impl ContextValue {
+        /// Number of underneath expressions.
+        #[inline]
+        pub const fn len(&self) -> usize {
+            1
+        }
+
+        /// Constructs `ContextValue`.
+        #[inline]
+        pub fn new(value_name: &str) -> Self {
+            Self {
+                value_name: String::from(value_name),
+            }
+        }
+    }
+
+    impl From<ContextValue> for ExpressionBox {
+        #[inline]
+        fn from(expression: ContextValue) -> Self {
+            Expression::ContextValue(expression).into()
+        }
+    }
+
+    gen_expr_and_impls! {
+        /// Evaluates to the multiplication of left and right expressions.
+        /// Works only for [`Value::U32`]
+        #[derive(
+            Debug,
+            Display,
+            Clone,
+            PartialEq,
+            Eq,
+            Decode,
+            Encode,
+            Deserialize,
+            Serialize,
         IntoSchema,
         PartialOrd,
         Ord,

@@ -609,9 +609,8 @@ mod tests {
     };
 
     fn world_with_test_account(account_id: AccountId) -> World {
-        let domain_id = account_id.domain_id.clone();
-        let (public_key, _) = KeyPair::generate().unwrap().into();
-        let account = Account::new(account_id, [public_key]).build();
+        let domain_id = account_id.domain_id().expect("Must have alias").clone();
+        let account = Account::from_id(account_id).build();
         let mut domain = Domain::new(domain_id).build();
         assert!(domain.add_account(account).is_none());
 
@@ -658,13 +657,16 @@ mod tests {
     }
 
     #[test]
-    fn execute_instruction_exported() -> Result<(), Error> {
-        let account_id = AccountId::from_str("alice@wonderland")?;
-        let wsv = WorldStateView::new(world_with_test_account(account_id.clone()));
+    fn execute_instruction_exported() -> eyre::Result<()> {
+        let alias = Alias::from_str("alice@wonderland")?;
+        let (public_key, _) = KeyPair::generate()?.into();
+        let addr = AccountId::new(public_key.clone(), alias);
+        let wsv = WorldStateView::new(world_with_test_account(addr.clone()));
 
         let isi_hex = {
-            let new_account_id = AccountId::from_str("mad_hatter@wonderland")?;
-            let register_isi = RegisterBox::new(Account::new(new_account_id, []));
+            let new_account_alias = Alias::from_str("mad_hatter@wonderland")?;
+            let new_account_id = AccountId::new(public_key.clone(), new_account_alias);
+            let register_isi = RegisterBox::new(Account::from_id(new_account_id.clone()));
             encode_hex(Instruction::Register(register_isi))
         };
 
@@ -687,16 +689,16 @@ mod tests {
             isi_len = isi_hex.len() / 3,
         );
         let mut runtime = Runtime::new()?;
-        runtime
-            .execute(&wsv, account_id, wat)
-            .expect("Execution failed");
+        runtime.execute(&wsv, addr, wat).wrap_err("Execution failed")?;
 
         Ok(())
     }
 
     #[test]
-    fn execute_query_exported() -> Result<(), Error> {
-        let account_id = AccountId::from_str("alice@wonderland")?;
+    fn execute_query_exported() -> eyre::Result<()> {
+        let account_alias = Alias::from_str("alice@wonderland")?;
+        let (public_key, _) = KeyPair::generate()?.into();
+        let account_id = AccountId::new(public_key.clone(), account_alias);
         let wsv = WorldStateView::new(world_with_test_account(account_id.clone()));
 
         let query_hex = {
@@ -729,19 +731,23 @@ mod tests {
         let mut runtime = Runtime::new()?;
         runtime
             .execute(&wsv, account_id, wat)
-            .expect("Execution failed");
+            .wrap_err("Execution failed")?;
 
         Ok(())
     }
 
     #[test]
-    fn instruction_limit_reached() -> Result<(), Error> {
-        let account_id = AccountId::from_str("alice@wonderland")?;
+    fn instruction_limit_reached() -> eyre::Result<()> {
+        let account_alias = Alias::from_str("alice@wonderland")?;
+        let (pub_key, _) = KeyPair::generate()?.into();
+        let account_id = AccountId::new(pub_key.clone(), account_alias);
         let wsv = WorldStateView::new(world_with_test_account(account_id.clone()));
 
         let isi_hex = {
-            let new_account_id = AccountId::from_str("mad_hatter@wonderland")?;
-            let register_isi = RegisterBox::new(Account::new(new_account_id, []));
+            let new_account_id = Alias::from_str("mad_hatter@wonderland")?;
+            let new_account =
+                Account::from_id(AccountId::new(pub_key.clone(), new_account_id.clone()));
+            let register_isi = RegisterBox::new(new_account);
             encode_hex(Instruction::Register(register_isi))
         };
 
@@ -779,9 +785,9 @@ mod tests {
 
         if let Error::ExportFnCall(trap) = res.expect_err("Execution should fail") {
             assert!(trap
-                .display_reason()
-                .to_string()
-                .starts_with("Number of instructions exceeds maximum(1)"));
+                    .display_reason()
+                    .to_string()
+                    .starts_with("Number of instructions exceeds maximum(1)"));
         }
 
         Ok(())
@@ -789,12 +795,18 @@ mod tests {
 
     #[test]
     fn instructions_not_allowed() -> Result<(), Error> {
-        let account_id = AccountId::from_str("alice@wonderland")?;
+        let account_id = Alias::from_str("alice@wonderland")?;
+        let (primary_key, _) = KeyPair::generate().expect("Shouldn't fail").into();
+        let account_id = AccountId::new(primary_key.clone(), account_id);
         let wsv = WorldStateView::new(world_with_test_account(account_id.clone()));
 
         let isi_hex = {
-            let new_account_id = AccountId::from_str("mad_hatter@wonderland")?;
-            let register_isi = RegisterBox::new(Account::new(new_account_id, []));
+            let new_account_id = AccountId::new(
+                primary_key.clone(),
+                Alias::from_str("mad_hatter@wonderland")?,
+            );
+            // TODO: this should fail
+            let register_isi = RegisterBox::new(Account::from_id(account_id.clone()));
             encode_hex(Instruction::Register(register_isi))
         };
 
@@ -803,16 +815,13 @@ mod tests {
             (module
                 ;; Import host function to execute
                 (import "iroha" "{execute_fn_name}"
-                    (func $exec_fn (param i32 i32))
-                )
+                    (func $exec_fn (param i32 i32)))
 
                 {memory_and_alloc}
 
                 ;; Function which starts the smartcontract execution
                 (func (export "{main_fn_name}") (param i32 i32)
-                    (call $exec_fn (i32.const 0) (i32.const {isi_len}))
-                )
-            )
+                    (call $exec_fn (i32.const 0) (i32.const {isi_len}))))
             "#,
             main_fn_name = export::WASM_MAIN_FN_NAME,
             execute_fn_name = import::EXECUTE_ISI_FN_NAME,
@@ -832,9 +841,9 @@ mod tests {
 
         if let Error::ExportFnCall(trap) = res.expect_err("Execution should fail") {
             assert!(trap
-                .display_reason()
-                .to_string()
-                .starts_with("Transaction rejected due to insufficient authorisation"));
+                    .display_reason()
+                    .to_string()
+                    .starts_with("Transaction rejected due to insufficient authorisation"));
         }
 
         Ok(())
@@ -842,7 +851,9 @@ mod tests {
 
     #[test]
     fn queries_not_allowed() -> Result<(), Error> {
-        let account_id = AccountId::from_str("alice@wonderland")?;
+        let alias = Alias::from_str("alice@wonderland")?;
+        let public_key = KeyPair::generate().expect("Valid").public_key().clone();
+        let account_id = AccountId::new(public_key, alias);
         let wsv = WorldStateView::new(world_with_test_account(account_id.clone()));
 
         let query_hex = {

@@ -40,6 +40,9 @@ impl ValidQueryRequest {
 /// Query errors.
 #[derive(Error, Debug, Decode, Encode, IntoSchema)]
 pub enum Error {
+    /// Bare account not allowed in this context. Please add alias
+    #[error("Bare account not allowed in this context. Please add alias")]
+    BareAccount,
     /// Query cannot be decoded.
     #[error("Query cannot be decoded")]
     Decode(#[from] Box<iroha_version::error::Error>),
@@ -76,6 +79,7 @@ impl ValidQuery for QueryBox {
         match self {
             FindAllAccounts(query) => query.execute_into_value(wsv),
             FindAccountById(query) => query.execute_into_value(wsv),
+            FindAccountIdByAlias(query) => query.execute_into_value(wsv),
             FindAccountsByName(query) => query.execute_into_value(wsv),
             FindAccountsByDomainId(query) => query.execute_into_value(wsv),
             FindAccountsWithAsset(query) => query.execute_into_value(wsv),
@@ -132,13 +136,16 @@ mod tests {
     };
 
     static ALICE_KEYS: Lazy<KeyPair> = Lazy::new(|| KeyPair::generate().unwrap());
+    static ALICE_ALIAS: Lazy<Alias> =
+        Lazy::new(|| Alias::from_str("alice@wonderland").expect("Valid"));
+
     static ALICE_ID: Lazy<AccountId> =
-        Lazy::new(|| AccountId::from_str("alice@wonderland").expect("Valid"));
+        Lazy::new(|| AccountId::new(ALICE_KEYS.public_key().clone(), ALICE_ALIAS.clone()));
 
     fn world_with_test_domains() -> World {
         let domain_id = DomainId::from_str("wonderland").expect("Valid");
         let mut domain = Domain::new(domain_id).build();
-        let account = Account::new(ALICE_ID.clone(), [ALICE_KEYS.public_key().clone()]).build();
+        let account = Account::from_id(ALICE_ID.clone()).build();
         assert!(domain.add_account(account).is_none());
         let asset_definition_id = AssetDefinitionId::from_str("rose#wonderland").expect("Valid");
         assert!(domain
@@ -153,7 +160,7 @@ mod tests {
     fn world_with_test_asset_with_metadata() -> World {
         let asset_definition_id = AssetDefinitionId::from_str("rose#wonderland").expect("Valid");
         let mut domain = Domain::new(DomainId::from_str("wonderland").expect("Valid")).build();
-        let mut account = Account::new(ALICE_ID.clone(), [ALICE_KEYS.public_key().clone()]).build();
+        let mut account = Account::from_id(ALICE_ID.clone()).build();
         assert!(domain
             .add_asset_definition(
                 AssetDefinition::quantity(asset_definition_id.clone()).build(),
@@ -186,7 +193,7 @@ mod tests {
         )?;
 
         let mut domain = Domain::new(DomainId::from_str("wonderland")?).build();
-        let account = Account::new(ALICE_ID.clone(), [ALICE_KEYS.public_key().clone()])
+        let account = Account::from_id(ALICE_ID.clone())
             .with_metadata(metadata)
             .build();
         assert!(domain.add_account(account).is_none());
@@ -427,7 +434,7 @@ mod tests {
             let mut domain = Domain::new(DomainId::from_str("wonderland")?)
                 .with_metadata(metadata)
                 .build();
-            let account = Account::new(ALICE_ID.clone(), [ALICE_KEYS.public_key().clone()]).build();
+            let account = Account::from_id(ALICE_ID.clone()).build();
             assert!(domain.add_account(account).is_none());
             let asset_definition_id = AssetDefinitionId::from_str("rose#wonderland")?;
             assert!(domain

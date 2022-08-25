@@ -1,55 +1,61 @@
 {
-    "id": {
-        "name": "mint_rose"
-    },
-    "action": {
-        "executable": {
-            "Instructions": [
-                {
-                    "Mint": {
-                        "object": {
-                            "Raw": {
-                                "U32": 1
-                            }
-                        },
-                        "destination_id": {
-                            "Raw": {
-                                "Id": {
-                                    "AssetId": {
-                                        "definition_id": {
-                                            "name": "rose",
-                                            "domain_id": {
-                                                "name": "wonderland"
-                                            }
-                                        },
-                                        "account_id": {
-                                            "name": "alice",
-                                            "domain_id": {
-                                                "name": "wonderland"
-                                            }
-                                        }
-                                    }
-                                }
-                            }
+  "id": {
+    "name": "mint_rose"
+  },
+  "action": {
+    "executable": {
+      "Instructions": [
+        {
+          "Mint": {
+            "object": {
+              "Raw": {
+                "U32": 1
+              }
+            },
+            "destination_id": {
+              "Raw": {
+                "Id": {
+                  "AssetId": {
+                    "definition_id": {
+                      "name": "rose",
+                      "domain_id": {
+                        "name": "wonderland"
+                      }
+                    },
+                    "account_id": {
+                      "primary_key": "ed01201c61faf8fe94e253b93114240394f79a607b7fa55f9e5a41ebec74b88055768b",
+                      "alias": {
+                        "name": "alice",
+                        "domain_id": {
+                          "name": "wonderland"
                         }
+                      }
                     }
+                  }
                 }
-            ]
-        },
-        "repeats": "Indefinitely",
-        "technical_account": {
-            "name": "alice",
-            "domain_id": {
-                "name": "wonderland"
+              }
             }
-        },
-        "filter": {
-            "Data": {
-                "BySome": {
-                    "ByAccount": "AcceptAll"
-                }
-            }
-        },
-        "metadata": {}
-    }
+          }
+        }
+      ]
+    },
+    "repeats": "Indefinitely",
+    "technical_account": {
+      "primary_key": "ed01201c61faf8fe94e253b93114240394f79a607b7fa55f9e5a41ebec74b88055768b",
+      "alias": {
+        "name": "alice",
+        "domain_id": {
+          "name": "wonderland"
+        }
+      }
+    },
+    "filter": {
+      "Data": {
+        "BySome": {
+          "ByAccount": "AcceptAll"
+        }
+      }
+    },
+    "metadata": {}
+  }
 }

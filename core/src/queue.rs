@@ -253,7 +253,7 @@ mod tests {
     use crate::{wsv::World, PeersIds};
 
     fn accepted_tx(
-        account_id: &str,
+        account_alias: &str,
         proposed_ttl_ms: u64,
         key: KeyPair,
     ) -> VersionedAcceptedTransaction {
@@ -261,13 +261,15 @@ mod tests {
             .take(16)
             .collect();
         let instructions: Vec<Instruction> = vec![FailBox { message }.into()];
-        let tx = Transaction::new(
-            AccountId::from_str(account_id).expect("Valid"),
-            instructions.into(),
-            proposed_ttl_ms,
-        )
-        .sign(key)
-        .expect("Failed to sign.");
+        let account_id = AccountId::new(
+            key.public_key().clone(),
+            account_alias
+                .parse()
+                .expect("You should check for allowed characters in tests."),
+        );
+        let tx = Transaction::new(account_id, instructions.into(), proposed_ttl_ms)
+            .sign(key)
+            .expect("Failed to sign.");
         let limits = TransactionLimits {
             max_instruction_number: 4096,
             max_wasm_size_bytes: 0,
@@ -280,7 +282,7 @@ mod tests {
         signatures: impl IntoIterator<Item = iroha_crypto::PublicKey>,
     ) -> World {
         let domain_id = DomainId::from_str("wonderland").expect("Valid");
-        let account_id = AccountId::from_str("alice@wonderland").expect("Valid");
+        let account_id = Alias::from_str("alice@wonderland").expect("Valid");
         let mut domain = Domain::new(domain_id).build();
         let account = Account::new(account_id, signatures).build();
         assert!(domain.add_account(account).is_none());
@@ -349,8 +351,11 @@ mod tests {
         let wsv = {
             let domain_id = DomainId::from_str("wonderland").expect("Valid");
             let mut domain = Domain::new(domain_id.clone()).build();
-            let account_id = AccountId::from_str("alice@wonderland").expect("Valid");
-            let mut account = Account::new(account_id, [key_pair.public_key().clone()]).build();
+            let account_id = {
+                let alias = Alias::from_str("alice@wonderland").expect("Valid");
+                AccountId::new(key_pair.public_key().clone(), alias)
+            };
+            let mut account = Account::from_id(account_id).build();
             account.set_signature_check_condition(SignatureCheckCondition(false.into()));
             assert!(domain.add_account(account).is_none());
 
@@ -393,7 +398,10 @@ mod tests {
             wsv,
         );
         let tx = Transaction::new(
-            AccountId::from_str("alice@wonderland").expect("Valid"),
+            AccountId::new(
+                key_pairs[0].public_key().clone(),
+                Alias::from_str("alice@wonderland").expect("Valid"),
+            ),
             Vec::<Instruction>::new().into(),
             100_000,
         );

@@ -23,7 +23,7 @@ use iroha_schema::IntoSchema;
 use parity_scale_codec::{Decode, Encode};
 use serde::{Deserialize, Serialize};
 
-use crate::{ffi::ffi_item, utils::format_comma_separated, Identifiable, Name, Registered, Value};
+use crate::{ffi::ffi_item, utils::format_comma_separated, Identifiable, Name, Registered, value::Value};
 
 /// Collection of [`PermissionToken`]s
 pub type Permissions = btree_set::BTreeSet<PermissionToken>;

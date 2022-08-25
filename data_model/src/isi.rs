@@ -12,8 +12,8 @@ use iroha_schema::IntoSchema;
 use parity_scale_codec::{Decode, Encode};
 use serde::{Deserialize, Serialize};
 
-use super::{expression::EvaluatesTo, prelude::*, IdBox, RegistrableBox, Value};
 use crate::Registered;
+use crate::{expression::EvaluatesTo, prelude::*, value::Value, IdBox, RegistrableBox};
 
 /// Sized structure for all possible Instructions.
 #[derive(
@@ -98,7 +98,7 @@ pub struct SetKeyValueBox {
     pub value: EvaluatesTo<Value>,
 }
 
-/// Sized structure for all possible key value pair remove instructions.
+/// Sized structure for all possible key value pair remove instructions.g
 #[derive(
     Debug, Display, Clone, PartialEq, Eq, Decode, Encode, Deserialize, Serialize, IntoSchema,
 )]

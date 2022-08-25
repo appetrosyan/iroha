@@ -5,6 +5,7 @@ use iroha_core::prelude::*;
 use iroha_data_model::{prelude::*, Registered};
 use iroha_primitives::fixed::Fixed;
 use test_network::*;
+use std::str::FromStr as _;
 
 #[test]
 fn simulate_transfer_quantity() {
@@ -50,13 +51,18 @@ fn simulate_transfer<
 {
     let (_rt, _peer, mut iroha_client) = <PeerBuilder>::new().start_with_runtime();
     wait_for_genesis_committed(&vec![iroha_client.clone()], 0);
+    let alice_id = {
+        let alias = Alias::from_str("alice@wonderland").expect("valid name");
+        let (public_key, _) = KeyPair::generate().expect("Valid").into();
+        AccountId::new(public_key, alias)
+    };
+    let mouse_id = {
+        let alias = Alias::from_str("mouse@wonderland").expect("valid name");
+        let (public_key, _) = KeyPair::generate().expect("Valid").into();
+        AccountId::new(public_key, alias)
+    };
 
-    let alice_id: AccountId = "alice@wonderland".parse().expect("Valid");
-    let mouse_id: AccountId = "mouse@wonderland".parse().expect("Valid");
-    let (bob_public_key, _) = KeyPair::generate()
-        .expect("Failed to generate KeyPair")
-        .into();
-    let create_mouse = RegisterBox::new(Account::new(mouse_id.clone(), [bob_public_key]));
+    let create_mouse = RegisterBox::new(Account::from_id(mouse_id.clone()));
     let asset_definition_id: AssetDefinitionId = "camomile#wonderland".parse().expect("Valid");
     let create_asset = RegisterBox::new(value_type(asset_definition_id.clone()));
     let mint_asset = MintBox::new(

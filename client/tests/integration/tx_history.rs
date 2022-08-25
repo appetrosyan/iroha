@@ -16,7 +16,11 @@ fn client_has_rejected_and_acepted_txs_should_return_tx_history() {
     let pipeline_time = Configuration::pipeline_time();
 
     // Given
-    let account_id = AccountId::from_str("alice@wonderland").expect("Valid");
+    let account_id = {
+        let alias = Alias::from_str("alice@wonderland").expect("valid name");
+        let (public_key, _) = get_key_pair().into();
+        AccountId::new(public_key, alias)
+    };
     let asset_definition_id = AssetDefinitionId::from_str("xor#wonderland").expect("Valid");
     let create_asset = RegisterBox::new(AssetDefinition::quantity(asset_definition_id.clone()));
     iroha_client

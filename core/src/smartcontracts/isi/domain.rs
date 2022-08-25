@@ -28,22 +28,26 @@ pub mod isi {
             let account: Account = self.object.build();
             let account_id = account.id().clone();
 
-            account_id
-                .name
-                .validate_len(wsv.config.ident_length_limits)
-                .map_err(Error::Validate)?;
+            if let Some(ref alias) = account_id.alias {
+                alias
+                    .name
+                    .validate_len(wsv.config.ident_length_limits)
+                    .map_err(Error::Validate)?;
 
-            wsv.modify_domain(&account_id.domain_id.clone(), |domain| {
-                if domain.account(&account_id).is_some() {
-                    return Err(Error::Repetition(
-                        InstructionType::Register,
-                        IdBox::AccountId(account_id),
-                    ));
-                }
+                wsv.modify_domain(&alias.domain_id.clone(), |domain| {
+                    if domain.account(&account_id).is_some() {
+                        return Err(Error::Repetition(
+                            InstructionType::Register,
+                            IdBox::AccountId(account_id),
+                        ));
+                    }
 
-                domain.add_account(account);
-                Ok(DomainEvent::Account(AccountEvent::Created(account_id)))
-            })
+                    domain.add_account(account);
+                    Ok(DomainEvent::Account(AccountEvent::Created(account_id)))
+                })
+            } else {
+                todo!()
+            }
         }
     }
 
@@ -58,7 +62,7 @@ pub mod isi {
         ) -> Result<(), Self::Error> {
             let account_id = self.object_id;
 
-            wsv.modify_domain(&account_id.domain_id.clone(), |domain| {
+            wsv.modify_domain(&account_id.domain_id().ok_or(Error::BareAccount)?.clone(), |domain| {
                 if domain.remove_account(&account_id).is_none() {
                     return Err(FindError::Account(account_id).into());
                 }

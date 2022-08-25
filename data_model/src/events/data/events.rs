@@ -280,13 +280,13 @@ mod account {
             match self {
                 Self::Asset(asset) => &asset.origin_id().account_id,
                 Self::Created(id)
-                | Self::Deleted(id)
-                | Self::AuthenticationAdded(id)
-                | Self::AuthenticationRemoved(id)
-                | Self::PermissionAdded(id)
-                | Self::PermissionRemoved(id)
-                | Self::RoleRevoked(id)
-                | Self::RoleGranted(id)
+                    | Self::Deleted(id)
+                    | Self::AuthenticationAdded(id)
+                    | Self::AuthenticationRemoved(id)
+                    | Self::PermissionAdded(id)
+                    | Self::PermissionRemoved(id)
+                    | Self::RoleRevoked(id)
+                    | Self::RoleGranted(id)
                 | Self::MetadataInserted(id)
                 | Self::MetadataRemoved(id) => id,
             }
@@ -331,7 +331,7 @@ mod domain {
 
         fn origin_id(&self) -> &<Domain as Identifiable>::Id {
             match self {
-                Self::Account(account) => &account.origin_id().domain_id,
+                Self::Account(account) => &account.origin_id().domain_id().expect("Unimplemented"),
                 Self::AssetDefinition(asset_definition) => &asset_definition.origin_id().domain_id,
                 Self::Created(id)
                 | Self::Deleted(id)
@@ -461,7 +461,7 @@ impl Event {
     pub fn domain_id(&self) -> Option<&<Domain as Identifiable>::Id> {
         match self {
             Self::Domain(event) => Some(event.origin_id()),
-            Self::Account(event) => Some(&event.origin_id().domain_id),
+            Self::Account(event) => event.origin_id().domain_id(),
             Self::AssetDefinition(event) => Some(&event.origin_id().domain_id),
             Self::Asset(event) => Some(&event.origin_id().definition_id.domain_id),
             Self::Trigger(event) => event.origin_id().domain_id.as_ref(),

@@ -194,15 +194,23 @@ mod tests {
 
     #[test]
     fn transfer_only_owned_assets() {
-        let alice_id = AccountId::from_str("alice@test").expect("Valid");
-        let bob_id = AccountId::from_str("bob@test").expect("Valid");
+        let alice_id = {
+            let alias = Alias::from_str("alice@test").expect("valid name");
+            let (public_key, _) = KeyPair::generate().expect("Valid").into();
+            AccountId::new(public_key, alias)
+        };
+        let bob_id = {
+            let alias = Alias::from_str("bob@test").expect("valid name");
+            let (public_key, _) = KeyPair::generate().expect("Valid").into();
+            AccountId::new(public_key, alias)
+        };
         let alice_xor_id = <Asset as Identifiable>::Id::new(
             AssetDefinitionId::from_str("xor#test").expect("Valid"),
-            AccountId::from_str("alice@test").expect("Valid"),
+            alice_id.clone(),
         );
         let bob_xor_id = <Asset as Identifiable>::Id::new(
             AssetDefinitionId::from_str("xor#test").expect("Valid"),
-            AccountId::from_str("bob@test").expect("Valid"),
+            bob_id.clone()
         );
         let wsv = WorldStateView::new(World::new());
         let transfer = Instruction::Transfer(TransferBox {
@@ -220,18 +228,26 @@ mod tests {
 
     #[test]
     fn transfer_granted_assets() {
-        let alice_id = AccountId::from_str("alice@test").expect("Valid");
-        let bob_id = AccountId::from_str("bob@test").expect("Valid");
+        let alice_id = {
+            let alias = Alias::from_str("alice@test").expect("valid name");
+            let (public_key, _) = KeyPair::generate().expect("Valid").into();
+            AccountId::new(public_key, alias)
+        };
+        let bob_id = {
+            let alias = Alias::from_str("bob@test").expect("valid name");
+            let (public_key, _) = KeyPair::generate().expect("Valid").into();
+            AccountId::new(public_key, alias)
+        };
         let alice_xor_id = <Asset as Identifiable>::Id::new(
             AssetDefinitionId::from_str("xor#test").expect("Valid"),
-            AccountId::from_str("alice@test").expect("Valid"),
+            alice_id.clone(),
         );
         let bob_xor_id = <Asset as Identifiable>::Id::new(
             AssetDefinitionId::from_str("xor#test").expect("Valid"),
-            AccountId::from_str("bob@test").expect("Valid"),
+            bob_id.clone(),
         );
         let mut domain = Domain::new(DomainId::from_str("test").expect("Valid")).build();
-        let mut bob_account = Account::new(bob_id.clone(), []).build();
+        let mut bob_account = Account::from_id(bob_id.clone()).build();
         assert!(bob_account
             .add_permission(transfer::CanTransferUserAssets::new(alice_xor_id.clone()).into()));
         assert!(domain.add_account(bob_account).is_none());
@@ -249,11 +265,19 @@ mod tests {
 
     #[test]
     fn grant_transfer_of_my_assets() {
-        let alice_id = AccountId::from_str("alice@test").expect("Valid");
-        let bob_id = AccountId::from_str("bob@test").expect("Valid");
+        let alice_id = {
+            let alias = Alias::from_str("alice@test").expect("valid name");
+            let (public_key, _) = KeyPair::generate().expect("Valid").into();
+            AccountId::new(public_key, alias)
+        };
+        let bob_id = {
+            let alias = Alias::from_str("bob@test").expect("valid name");
+            let (public_key, _) = KeyPair::generate().expect("Valid").into();
+            AccountId::new(public_key, alias)
+        };
         let alice_xor_id = <Asset as Identifiable>::Id::new(
             AssetDefinitionId::from_str("xor#test").expect("Valid"),
-            AccountId::from_str("alice@test").expect("Valid"),
+            alice_id.clone()
         );
         let permission_token_to_alice: PermissionToken =
             transfer::CanTransferUserAssets::new(alice_xor_id).into();
@@ -269,15 +293,23 @@ mod tests {
 
     #[test]
     fn unregister_only_assets_created_by_this_account() {
-        let alice_id = AccountId::from_str("alice@test").expect("Valid");
-        let bob_id = AccountId::from_str("bob@test").expect("Valid");
+        let alice_id = {
+            let alias = Alias::from_str("alice@test").expect("valid name");
+            let (public_key, _) = KeyPair::generate().expect("Valid").into();
+            AccountId::new(public_key, alias)
+        };
+        let bob_id = {
+            let alias = Alias::from_str("bob@test").expect("valid name");
+            let (public_key, _) = KeyPair::generate().expect("Valid").into();
+            AccountId::new(public_key, alias)
+        };
         let xor_id = AssetDefinitionId::from_str("xor#test").expect("Valid");
         let xor_definition = new_xor_definition(&xor_id);
         let domain_id = DomainId::from_str("test").expect("Valid");
         let mut domain = Domain::new(domain_id).build();
         assert!(domain
-            .add_asset_definition(xor_definition, alice_id.clone())
-            .is_none());
+                .add_asset_definition(xor_definition, alice_id.clone())
+                .is_none());
         let wsv = WorldStateView::new(World::with([domain], []));
         let unregister =
             Instruction::Unregister(UnregisterBox::new(IdBox::AssetDefinitionId(xor_id)));
@@ -291,12 +323,20 @@ mod tests {
 
     #[test]
     fn unregister_granted_assets() {
-        let alice_id = AccountId::from_str("alice@test").expect("Valid");
-        let bob_id = AccountId::from_str("bob@test").expect("Valid");
+        let alice_id = {
+            let alias = Alias::from_str("alice@test").expect("valid name");
+            let (public_key, _) = KeyPair::generate().expect("Valid").into();
+            AccountId::new(public_key, alias)
+        };
+        let bob_id = {
+            let alias = Alias::from_str("bob@test").expect("valid name");
+            let (public_key, _) = KeyPair::generate().expect("Valid").into();
+            AccountId::new(public_key, alias)
+        };
         let xor_id = AssetDefinitionId::from_str("xor#test").expect("Valid");
         let xor_definition = new_xor_definition(&xor_id);
         let mut domain = Domain::new(DomainId::from_str("test").expect("Valid")).build();
-        let mut bob_account = Account::new(bob_id.clone(), []).build();
+        let mut bob_account = Account::from_id(bob_id.clone()).build();
         assert!(bob_account.add_permission(
             unregister::CanUnregisterAssetWithDefinition::new(xor_id.clone()).into()
         ));
@@ -314,8 +354,16 @@ mod tests {
 
     #[test]
     fn grant_unregister_of_assets_created_by_this_account() {
-        let alice_id = AccountId::from_str("alice@test").expect("Valid");
-        let bob_id = AccountId::from_str("bob@test").expect("Valid");
+        let alice_id = {
+            let alias = Alias::from_str("alice@test").expect("valid name");
+            let (public_key, _) = KeyPair::generate().expect("Valid").into();
+            AccountId::new(public_key, alias)
+        };
+        let bob_id = {
+            let alias = Alias::from_str("bob@test").expect("valid name");
+            let (public_key, _) = KeyPair::generate().expect("Valid").into();
+            AccountId::new(public_key, alias)
+        };
         let xor_id = AssetDefinitionId::from_str("xor#test").expect("Valid");
         let xor_definition = new_xor_definition(&xor_id);
         let permission_token_to_alice: PermissionToken =
@@ -337,12 +385,20 @@ mod tests {
 
     #[test]
     fn mint_only_assets_created_by_this_account() {
-        let alice_id = AccountId::from_str("alice@test").expect("Valid");
+        let alice_id = {
+            let alias = Alias::from_str("alice@test").expect("valid name");
+            let (public_key, _) = KeyPair::generate().expect("Valid").into();
+            AccountId::new(public_key, alias)
+        };
         let alice_xor_id = <Asset as Identifiable>::Id::new(
             AssetDefinitionId::from_str("xor#test").expect("Valid"),
-            AccountId::from_str("alice@test").expect("Valid"),
+            alice_id.clone(),
         );
-        let bob_id = AccountId::from_str("bob@test").expect("Valid");
+        let bob_id = {
+            let alias = Alias::from_str("bob@test").expect("valid name");
+            let (public_key, _) = KeyPair::generate().expect("Valid").into();
+            AccountId::new(public_key, alias)
+        };
         let xor_id = AssetDefinitionId::from_str("xor#test").expect("Valid");
         let xor_definition = new_xor_definition(&xor_id);
         let domain_id = DomainId::from_str("test").expect("Valid");
@@ -365,16 +421,24 @@ mod tests {
 
     #[test]
     fn mint_granted_assets() {
-        let alice_id = AccountId::from_str("alice@test").expect("Valid");
+        let alice_id = {
+            let alias = Alias::from_str("alice@test").expect("valid name");
+            let (public_key, _) = KeyPair::generate().expect("Valid").into();
+            AccountId::new(public_key, alias)
+        };
         let alice_xor_id = <Asset as Identifiable>::Id::new(
             AssetDefinitionId::from_str("xor#test").expect("Valid"),
-            AccountId::from_str("alice@test").expect("Valid"),
+            alice_id.clone(),
         );
-        let bob_id = AccountId::from_str("bob@test").expect("Valid");
+        let bob_id = {
+            let alias = Alias::from_str("bob@test").expect("valid name");
+            let (public_key, _) = KeyPair::generate().expect("Valid").into();
+            AccountId::new(public_key, alias)
+        };
         let xor_id = AssetDefinitionId::from_str("xor#test").expect("Valid");
         let xor_definition = new_xor_definition(&xor_id);
         let mut domain = Domain::new(DomainId::from_str("test").expect("Valid")).build();
-        let mut bob_account = Account::new(bob_id.clone(), []).build();
+        let mut bob_account = Account::from_id(bob_id.clone()).build();
         assert!(bob_account.add_permission(mint::CanMintUserAssetDefinitions::new(xor_id).into()));
         assert!(domain.add_account(bob_account).is_none());
         assert!(domain
@@ -393,8 +457,16 @@ mod tests {
 
     #[test]
     fn grant_mint_of_assets_created_by_this_account() {
-        let alice_id = AccountId::from_str("alice@test").expect("Valid");
-        let bob_id = AccountId::from_str("bob@test").expect("Valid");
+        let alice_id = {
+            let alias = Alias::from_str("alice@test").expect("valid name");
+            let (public_key, _) = KeyPair::generate().expect("Valid").into();
+            AccountId::new(public_key, alias)
+        };
+        let bob_id = {
+            let alias = Alias::from_str("bob@test").expect("valid name");
+            let (public_key, _) = KeyPair::generate().expect("Valid").into();
+            AccountId::new(public_key, alias)
+        };
         let xor_id = AssetDefinitionId::from_str("xor#test").expect("Valid");
         let xor_definition = new_xor_definition(&xor_id);
         let permission_token_to_alice: PermissionToken =
@@ -415,12 +487,21 @@ mod tests {
 
     #[test]
     fn burn_only_assets_created_by_this_account() {
-        let alice_id = AccountId::from_str("alice@test").expect("Valid");
+        let alice_id = {
+            let alias = Alias::from_str("alice@test").expect("valid name");
+            let (public_key, _) = KeyPair::generate().expect("Valid").into();
+            AccountId::new(public_key, alias)
+        };
+
         let alice_xor_id = <Asset as Identifiable>::Id::new(
             AssetDefinitionId::from_str("xor#test").expect("Valid"),
-            AccountId::from_str("alice@test").expect("Valid"),
+            alice_id.clone(),
         );
-        let bob_id = AccountId::from_str("bob@test").expect("Valid");
+        let bob_id = {
+            let alias = Alias::from_str("bob@test").expect("valid name");
+            let (public_key, _) = KeyPair::generate().expect("Valid").into();
+            AccountId::new(public_key, alias)
+        };
         let xor_id = AssetDefinitionId::from_str("xor#test").expect("Valid");
         let xor_definition = new_xor_definition(&xor_id);
         let domain_id = DomainId::from_str("test").expect("Valid");
@@ -443,21 +524,29 @@ mod tests {
 
     #[test]
     fn burn_granted_asset_definition() {
-        let alice_id = AccountId::from_str("alice@test").expect("Valid");
+        let alice_id = {
+            let alias = Alias::from_str("alice@test").expect("valid name");
+            let (public_key, _) = KeyPair::generate().expect("Valid").into();
+            AccountId::new(public_key, alias)
+        };
         let alice_xor_id = <Asset as Identifiable>::Id::new(
             AssetDefinitionId::from_str("xor#test").expect("Valid"),
-            AccountId::from_str("alice@test").expect("Valid"),
+            alice_id.clone()
         );
-        let bob_id = AccountId::from_str("bob@test").expect("Valid");
+        let bob_id = {
+            let alias = Alias::from_str("bob@test").expect("valid name");
+            let (public_key, _) = KeyPair::generate().expect("Valid").into();
+            AccountId::new(public_key, alias)
+        };
         let xor_id = AssetDefinitionId::from_str("xor#test").expect("Valid");
         let xor_definition = new_xor_definition(&xor_id);
         let mut domain = Domain::new(DomainId::from_str("test").expect("Valid")).build();
-        let mut bob_account = Account::new(bob_id.clone(), []).build();
+        let mut bob_account = Account::from_id(bob_id.clone()).build();
         assert!(bob_account.add_permission(burn::CanBurnAssetWithDefinition::new(xor_id).into()));
         assert!(domain.add_account(bob_account).is_none());
         assert!(domain
-            .add_asset_definition(xor_definition, alice_id.clone())
-            .is_none());
+                .add_asset_definition(xor_definition, alice_id.clone())
+                .is_none());
         let wsv = WorldStateView::new(World::with([domain], vec![]));
         let instruction = Instruction::Burn(BurnBox {
             object: Value::U32(100).into(),
@@ -471,8 +560,16 @@ mod tests {
 
     #[test]
     fn grant_burn_of_assets_created_by_this_account() {
-        let alice_id = AccountId::from_str("alice@test").expect("Valid");
-        let bob_id = AccountId::from_str("bob@test").expect("Valid");
+        let alice_id = {
+            let alias = Alias::from_str("alice@test").expect("valid name");
+            let (public_key, _) = KeyPair::generate().expect("Valid").into();
+            AccountId::new(public_key, alias)
+        };
+        let bob_id = {
+            let alias = Alias::from_str("bob@test").expect("valid name");
+            let (public_key, _) = KeyPair::generate().expect("Valid").into();
+            AccountId::new(public_key, alias)
+        };
         let xor_id = AssetDefinitionId::from_str("xor#test").expect("Valid");
         let xor_definition = new_xor_definition(&xor_id);
         let permission_token_to_alice: PermissionToken =
@@ -493,11 +590,19 @@ mod tests {
 
     #[test]
     fn burn_only_owned_assets() {
-        let alice_id = AccountId::from_str("alice@test").expect("Valid");
-        let bob_id = AccountId::from_str("bob@test").expect("Valid");
+        let alice_id = {
+            let alias = Alias::from_str("alice@tests").expect("valid name");
+            let (public_key, _) = KeyPair::generate().expect("Valid").into();
+            AccountId::new(public_key, alias)
+        };
+        let bob_id = {
+            let alias = Alias::from_str("bob@test").expect("valid name");
+            let (public_key, _) = KeyPair::generate().expect("Valid").into();
+            AccountId::new(public_key, alias)
+        };
         let alice_xor_id = <Asset as Identifiable>::Id::new(
             AssetDefinitionId::from_str("xor#test").expect("Valid"),
-            AccountId::from_str("alice@test").expect("Valid"),
+            alice_id.clone(),
         );
         let wsv = WorldStateView::new(World::new());
         let burn = Instruction::Burn(BurnBox {
@@ -512,14 +617,22 @@ mod tests {
 
     #[test]
     fn burn_granted_assets() {
-        let alice_id = AccountId::from_str("alice@test").expect("Valid");
-        let bob_id = AccountId::from_str("bob@test").expect("Valid");
+        let alice_id = {
+            let alias = Alias::from_str("alice@test").expect("valid name");
+            let (public_key, _) = KeyPair::generate().expect("Valid").into();
+            AccountId::new(public_key, alias)
+        };
+        let bob_id = {
+            let alias = Alias::from_str("bob@test").expect("valid name");
+            let (public_key, _) = KeyPair::generate().expect("Valid").into();
+            AccountId::new(public_key, alias)
+        };
         let alice_xor_id = <Asset as Identifiable>::Id::new(
             AssetDefinitionId::from_str("xor#test").expect("Valid"),
-            AccountId::from_str("alice@test").expect("Valid"),
+            alice_id.clone(),
         );
         let mut domain = Domain::new(DomainId::from_str("test").expect("Valid")).build();
-        let mut bob_account = Account::new(bob_id.clone(), []).build();
+        let mut bob_account = Account::from_id(bob_id.clone()).build();
         assert!(
             bob_account.add_permission(burn::CanBurnUserAssets::new(alice_xor_id.clone()).into())
         );
@@ -536,11 +649,19 @@ mod tests {
 
     #[test]
     fn grant_burn_of_my_assets() {
-        let alice_id = AccountId::from_str("alice@test").expect("Valid");
-        let bob_id = AccountId::from_str("bob@test").expect("Valid");
+        let alice_id = {
+            let alias = Alias::from_str("alice@test").expect("valid name");
+            let (public_key, _) = KeyPair::generate().expect("Valid").into();
+            AccountId::new(public_key, alias)
+        };
+        let bob_id = {
+            let alias = Alias::from_str("bob@test").expect("valid name");
+            let (public_key, _) = KeyPair::generate().expect("Valid").into();
+            AccountId::new(public_key, alias)
+        };
         let alice_xor_id = <Asset as Identifiable>::Id::new(
             AssetDefinitionId::from_str("xor#test").expect("Valid"),
-            AccountId::from_str("alice@test").expect("Valid"),
+            alice_id.clone()
         );
         let permission_token_to_alice: PermissionToken =
             burn::CanBurnUserAssets::new(alice_xor_id).into();
@@ -556,11 +677,19 @@ mod tests {
 
     #[test]
     fn set_to_only_owned_assets() {
-        let alice_id = AccountId::from_str("alice@test").expect("Valid");
-        let bob_id = AccountId::from_str("bob@test").expect("Valid");
+        let alice_id = {
+            let alias = Alias::from_str("alice@test").expect("valid name");
+            let (public_key, _) = KeyPair::generate().expect("Valid").into();
+            AccountId::new(public_key, alias)
+        };
+        let bob_id = {
+            let alias = Alias::from_str("bob@test").expect("valid name");
+            let (public_key, _) = KeyPair::generate().expect("Valid").into();
+            AccountId::new(public_key, alias)
+        };
         let alice_xor_id = <Asset as Identifiable>::Id::new(
             AssetDefinitionId::from_str("xor#test").expect("Valid"),
-            AccountId::from_str("alice@test").expect("Valid"),
+            alice_id.clone(),
         );
         let wsv = WorldStateView::new(World::new());
         let key: Name = "key".parse().expect("Valid");
@@ -579,28 +708,44 @@ mod tests {
 
     #[test]
     fn remove_to_only_owned_assets() {
-        let alice_id = AccountId::from_str("alice@test").expect("Valid");
-        let bob_id = AccountId::from_str("bob@test").expect("Valid");
+        let alice_id = {
+            let alias = Alias::from_str("alice@test").expect("valid name");
+            let (public_key, _) = KeyPair::generate().expect("Valid").into();
+            AccountId::new(public_key, alias)
+        };
+        let bob_id = {
+            let alias = Alias::from_str("bob@test").expect("valid name");
+            let (public_key, _) = KeyPair::generate().expect("Valid").into();
+            AccountId::new(public_key, alias)
+        };
         let alice_xor_id = <Asset as Identifiable>::Id::new(
             AssetDefinitionId::from_str("xor#test").expect("Valid"),
-            AccountId::from_str("alice@test").expect("Valid"),
+            alice_id.clone(),
         );
         let wsv = WorldStateView::new(World::new());
         let key: Name = "key".parse().expect("Valid");
         let set =
             Instruction::RemoveKeyValue(RemoveKeyValueBox::new(IdBox::AssetId(alice_xor_id), key));
         assert!(key_value::AssetRemoveOnlyForSignerAccount
-            .check(&alice_id, &set, &wsv)
-            .is_allow());
+                .check(&alice_id, &set, &wsv)
+                .is_allow());
         assert!(key_value::AssetRemoveOnlyForSignerAccount
-            .check(&bob_id, &set, &wsv)
-            .is_deny());
+                .check(&bob_id, &set, &wsv)
+                .is_deny());
     }
 
     #[test]
     fn set_to_only_owned_account() {
-        let alice_id = AccountId::from_str("alice@test").expect("Valid");
-        let bob_id = AccountId::from_str("bob@test").expect("Valid");
+        let alice_id = {
+            let alias = Alias::from_str("alice@test").expect("Valid");
+            let (public_key, _) = KeyPair::generate().expect("Valid").into();
+            AccountId::new(public_key, alias)
+        };
+        let bob_id = {
+            let alias = Alias::from_str("bob@test").expect("Valid");
+            let (public_key, _) = KeyPair::generate().expect("Valid").into();
+            AccountId::new(public_key, alias)
+        };
         let wsv = WorldStateView::new(World::new());
         let key: Name = "key".parse().expect("Valid");
         let set = Instruction::SetKeyValue(SetKeyValueBox::new(
@@ -618,8 +763,16 @@ mod tests {
 
     #[test]
     fn remove_to_only_owned_account() {
-        let alice_id = AccountId::from_str("alice@test").expect("Valid");
-        let bob_id = AccountId::from_str("bob@test").expect("Valid");
+        let alice_id = {
+            let alias = Alias::from_str("alice@test").expect("Valid");
+            let (public_key, _) = KeyPair::generate().expect("Valid").into();
+            AccountId::new(public_key, alias)
+        };
+        let bob_id = {
+            let alias = Alias::from_str("bob@test").expect("Valid");
+            let (public_key, _) = KeyPair::generate().expect("Valid").into();
+            AccountId::new(public_key, alias)
+        };
         let wsv = WorldStateView::new(World::new());
         let key: Name = "key".parse().expect("Valid");
         let set = Instruction::RemoveKeyValue(RemoveKeyValueBox::new(
@@ -636,8 +789,16 @@ mod tests {
 
     #[test]
     fn set_to_only_owned_asset_definition() {
-        let alice_id = AccountId::from_str("alice@test").expect("Valid");
-        let bob_id = AccountId::from_str("bob@test").expect("Valid");
+        let alice_id = {
+            let alias = Alias::from_str("alice@test").expect("Valid");
+            let (public_key, _) = KeyPair::generate().expect("Valid").into();
+            AccountId::new(public_key, alias)
+        };
+        let bob_id = {
+            let alias = Alias::from_str("bob@test").expect("Valid");
+            let (public_key, _) = KeyPair::generate().expect("Valid").into();
+            AccountId::new(public_key, alias)
+        };
         let xor_id = AssetDefinitionId::from_str("xor#test").expect("Valid");
         let xor_definition = new_xor_definition(&xor_id);
         let domain_id = DomainId::from_str("test").expect("Valid");
@@ -662,8 +823,16 @@ mod tests {
 
     #[test]
     fn remove_to_only_owned_asset_definition() {
-        let alice_id = AccountId::from_str("alice@test").expect("Valid");
-        let bob_id = AccountId::from_str("bob@test").expect("Valid");
+        let alice_id = {
+            let alias = Alias::from_str("alice@test").expect("Valid");
+            let (public_key, _) = KeyPair::generate().expect("Valid").into();
+            AccountId::new(public_key, alias)
+        };
+        let bob_id = {
+            let alias = Alias::from_str("bob@test").expect("Valid");
+            let (public_key, _) = KeyPair::generate().expect("Valid").into();
+            AccountId::new(public_key, alias)
+        };
         let xor_id = AssetDefinitionId::from_str("xor#test").expect("Valid");
         let xor_definition = new_xor_definition(&xor_id);
         let domain_id = DomainId::from_str("test").expect("Valid");

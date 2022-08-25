@@ -16,7 +16,7 @@ fn call_execute_trigger() -> Result<()> {
     wait_for_genesis_committed(&vec![test_client.clone()], 0);
 
     let asset_definition_id = "rose#wonderland".parse()?;
-    let account_id = "alice@wonderland".parse()?;
+    let account_id = Alias::from_str("alice@wonderland")?.alice_key();
     let asset_id = AssetId::new(asset_definition_id, account_id);
     let prev_value = get_asset_value(&mut test_client, asset_id.clone())?;
 
@@ -41,7 +41,7 @@ fn execute_trigger_should_produce_event() -> Result<()> {
     wait_for_genesis_committed(&vec![test_client.clone()], 0);
 
     let asset_definition_id = "rose#wonderland".parse()?;
-    let account_id: AccountId = "alice@wonderland".parse()?;
+    let account_id = Alias::from_str("alice@wonderland")?.alice_key();
     let asset_id = AssetId::new(asset_definition_id, account_id.clone());
 
     let instruction = MintBox::new(1_u32, asset_id.clone());
@@ -77,7 +77,7 @@ fn infinite_recursion_should_produce_one_call_per_block() -> Result<()> {
     wait_for_genesis_committed(&vec![test_client.clone()], 0);
 
     let asset_definition_id = "rose#wonderland".parse()?;
-    let account_id = "alice@wonderland".parse()?;
+    let account_id = Alias::from_str("alice@wonderland")?.alice_key();
     let asset_id = AssetId::new(asset_definition_id, account_id);
     let trigger_id = TriggerId::from_str(TRIGGER_NAME)?;
     let call_trigger = ExecuteTriggerBox::new(trigger_id);
@@ -105,7 +105,7 @@ fn trigger_failure_should_not_cancel_other_triggers_execution() -> Result<()> {
     wait_for_genesis_committed(&vec![test_client.clone()], 0);
 
     let asset_definition_id = "rose#wonderland".parse()?;
-    let account_id = AccountId::from_str("alice@wonderland")?;
+    let account_id = Alias::from_str("alice@wonderland")?.alice_key();
     let asset_id = AssetId::new(asset_definition_id, account_id.clone());
 
     // Registering trigger that should fail on execution
@@ -160,7 +160,7 @@ fn trigger_should_not_be_executed_with_zero_repeats_count() -> Result<()> {
     wait_for_genesis_committed(&vec![test_client.clone()], 0);
 
     let asset_definition_id = "rose#wonderland".parse()?;
-    let account_id = AccountId::from_str("alice@wonderland")?;
+    let account_id = Alias::from_str("alice@wonderland")?.alice_key();
     let asset_id = AssetId::new(asset_definition_id, account_id.clone());
     let trigger_id = <Trigger<FilterBox> as Identifiable>::Id::from_str("self_modifying_trigger")?;
 
@@ -210,7 +210,7 @@ fn trigger_should_be_able_to_modify_its_own_repeats_count() -> Result<()> {
     wait_for_genesis_committed(&vec![test_client.clone()], 0);
 
     let asset_definition_id = "rose#wonderland".parse()?;
-    let account_id = AccountId::from_str("alice@wonderland")?;
+    let account_id = Alias::from_str("alice@wonderland")?.alice_key();
     let asset_id = AssetId::new(asset_definition_id, account_id.clone());
     let trigger_id = <Trigger<FilterBox> as Identifiable>::Id::from_str("self_modifying_trigger")?;
 
@@ -255,7 +255,7 @@ fn unregister_trigger() -> Result<()> {
     let (_rt, _peer, test_client) = <PeerBuilder>::new().start_with_runtime();
     wait_for_genesis_committed(&vec![test_client.clone()], 0);
 
-    let account_id = AccountId::from_str("alice@wonderland")?;
+    let account_id = Alias::from_str("alice@wonderland")?.alice_key();
 
     // Registering trigger
     let trigger_id = <Trigger<FilterBox> as Identifiable>::Id::from_str("empty_trigger")?;

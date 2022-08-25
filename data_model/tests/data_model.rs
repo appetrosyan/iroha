@@ -12,6 +12,7 @@ use iroha_data_model::{prelude::*, ParseError};
 use iroha_primitives::small::SmallStr;
 use test_network::{prepare_test_for_nextest, Peer as TestPeer, PeerBuilder, TestRuntime};
 use tokio::runtime::Runtime;
+use test_network::FreshKeyTrait as _;
 
 fn asset_id_new(
     definition_name: &str,
@@ -111,9 +112,9 @@ impl FindRateAndCheckItGreaterThanValue {
                         format!("{}2{}_rate#exchange", self.from_currency, self.to_currency)
                             .parse()
                             .expect("Valid"),
-                        AccountId::from_str("dex@exchange").expect("Valid"),
+                        Alias::from_str("dex@exchange").expect("Valid").fresh_key(),
                     )))
-                    .into(),
+                        .into(),
                 ),
                 self.value,
             )),
@@ -121,6 +122,7 @@ impl FindRateAndCheckItGreaterThanValue {
         )
     }
 }
+
 
 #[test]
 fn find_rate_and_check_it_greater_than_value_predefined_isi_should_be_valid() {
@@ -135,12 +137,13 @@ mod register {
     }
 
     pub fn account(account_name: &str, domain_name: &str) -> RegisterBox {
+        let public_key = KeyPair::generate().expect("Valid").public_key().clone();
         RegisterBox::new(Account::new(
-            AccountId::new(
+            Alias::new(
                 account_name.parse().expect("Valid"),
                 domain_name.parse().expect("Valid"),
             ),
-            [],
+            [public_key],
         ))
     }
 

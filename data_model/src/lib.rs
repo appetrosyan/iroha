@@ -1,9 +1,7 @@
 //! Iroha Data Model contains structures for Domains, Peers, Accounts and Assets with simple,
 //! non-specific functions like serialization.
-
 #![allow(
     clippy::module_name_repetitions,
-    clippy::unwrap_in_result,
     clippy::std_instead_of_alloc,
     clippy::arithmetic,
     clippy::trait_duplication_in_bounds
@@ -22,14 +20,14 @@ use alloc::{
     string::{String, ToString},
     vec::Vec,
 };
+use value::Value;
 use core::{convert::AsRef, fmt, fmt::Debug, ops::RangeInclusive};
 #[cfg(feature = "std")]
 use std::alloc::alloc;
 
 use block_value::{BlockHeaderValue, BlockValue};
-#[cfg(not(target_arch = "aarch64"))]
-use derive_more::Into;
-use derive_more::{AsRef, Deref, Display, From};
+
+use derive_more::Display;
 use events::FilterBox;
 use iroha_crypto::{Hash, PublicKey};
 use iroha_ffi::{IntoFfi, TryFromReprC};
@@ -38,7 +36,7 @@ use iroha_primitives::{
     fixed,
     small::{Array as SmallArray, SmallVec},
 };
-use iroha_schema::{IntoSchema, MetaMap};
+use iroha_schema::IntoSchema;
 use parity_scale_codec::{Decode, Encode};
 use prelude::TransactionQueryResult;
 use serde::{Deserialize, Serialize};
@@ -54,6 +52,7 @@ pub mod block_value;
 pub mod domain;
 pub mod events;
 pub mod expression;
+pub mod ipfs;
 pub mod isi;
 pub mod metadata;
 pub mod name;
@@ -66,6 +65,7 @@ pub mod role;
 pub mod sorting;
 pub mod transaction;
 pub mod trigger;
+pub mod value;
 
 pub mod utils {
     #![allow(clippy::doc_link_with_quotes)]
@@ -430,215 +430,6 @@ impl<'idbox> TryFrom<&'idbox IdentifiableBox> for &'idbox dyn HasMetadata {
     }
 }
 
-/// Create a [`Vec`] containing the arguments, which should satisfy `Into<Value>` bound.
-///
-/// Syntax is the same as in [`vec`](macro@vec)
-#[macro_export]
-macro_rules! val_vec {
-    () => { Vec::new() };
-    ($elem:expr; $n:expr) => { vec![iroha_data_model::Value::from($elem); $n] };
-    ($($x:expr),+ $(,)?) => { vec![$(iroha_data_model::Value::from($x),)+] };
-}
-
-/// Boxed [`Value`].
-pub type ValueBox = Box<Value>;
-
-/// Sized container for all possible values.
-#[derive(
-    Debug,
-    Clone,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Decode,
-    Encode,
-    Deserialize,
-    Serialize,
-    FromVariant,
-    IntoFfi,
-    TryFromReprC,
-    IntoSchema,
-)]
-#[allow(clippy::enum_variant_names)]
-#[repr(u8)]
-pub enum Value {
-    /// [`u32`] integer.
-    U32(u32),
-    /// [`u128`] integer.
-    U128(u128),
-    /// [`bool`] value.
-    Bool(bool),
-    /// [`String`] value.
-    String(String),
-    /// [`Name`] value.
-    Name(Name),
-    /// [`fixed::Fixed`] value
-    Fixed(fixed::Fixed),
-    /// [`Vec`] of `Value`.
-    Vec(
-        #[skip_from]
-        #[skip_try_from]
-        Vec<Value>,
-    ),
-    /// Recursive inclusion of LimitedMetadata,
-    LimitedMetadata(metadata::Metadata),
-    /// `Id` of `Asset`, `Account`, etc.
-    Id(IdBox),
-    /// `impl Identifiable` as in `Asset`, `Account` etc.
-    Identifiable(IdentifiableBox),
-    /// [`PublicKey`].
-    PublicKey(PublicKey),
-    /// Iroha [`Parameter`] variant.
-    Parameter(Parameter),
-    /// Signature check condition.
-    SignatureCheckCondition(SignatureCheckCondition),
-    /// Committed or rejected transactions
-    TransactionValue(TransactionValue),
-    /// Transaction Query
-    TransactionQueryResult(TransactionQueryResult),
-    /// [`PermissionToken`].
-    PermissionToken(PermissionToken),
-    /// [`struct@Hash`]
-    Hash(Hash),
-    /// Block
-    Block(BlockValueWrapper),
-    /// Block headers
-    BlockHeader(BlockHeaderValue),
-}
-
-/// Cross-platform wrapper for `BlockValue`.
-#[cfg(not(target_arch = "aarch64"))]
-#[derive(
-    AsRef,
-    Clone,
-    Debug,
-    Decode,
-    Deref,
-    Deserialize,
-    Encode,
-    Eq,
-    From,
-    Into,
-    Ord,
-    PartialEq,
-    PartialOrd,
-    Serialize,
-)]
-#[serde(transparent)]
-pub struct BlockValueWrapper(BlockValue);
-
-/// Cross-platform wrapper for `BlockValue`.
-#[cfg(target_arch = "aarch64")]
-#[derive(
-    AsRef,
-    Clone,
-    Debug,
-    Decode,
-    Deref,
-    Deserialize,
-    Encode,
-    Eq,
-    From,
-    Ord,
-    PartialEq,
-    PartialOrd,
-    Serialize,
-)]
-#[as_ref(forward)]
-#[deref(forward)]
-#[from(forward)]
-#[serde(transparent)]
-pub struct BlockValueWrapper(Box<BlockValue>);
-
-#[cfg(target_arch = "aarch64")]
-impl From<BlockValueWrapper> for BlockValue {
-    fn from(block_value: BlockValueWrapper) -> Self {
-        *block_value.0
-    }
-}
-
-impl IntoSchema for BlockValueWrapper {
-    fn type_name() -> String {
-        BlockValue::type_name()
-    }
-
-    fn schema(map: &mut MetaMap) {
-        BlockValue::schema(map);
-    }
-}
-
-impl fmt::Display for Value {
-    // TODO: Maybe derive
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Value::U32(v) => fmt::Display::fmt(&v, f),
-            Value::U128(v) => fmt::Display::fmt(&v, f),
-            Value::Bool(v) => fmt::Display::fmt(&v, f),
-            Value::String(v) => fmt::Display::fmt(&v, f),
-            Value::Name(v) => fmt::Display::fmt(&v, f),
-            Value::Fixed(v) => fmt::Display::fmt(&v, f),
-            #[allow(clippy::use_debug)]
-            Value::Vec(v) => {
-                // TODO: Remove so we can derive.
-                let list_of_display: Vec<_> = v.iter().map(ToString::to_string).collect();
-                // this prints with quotation marks, which is fine 90%
-                // of the time, and helps delineate where a display of
-                // one value stops and another one begins.
-                write!(f, "{:?}", list_of_display)
-            }
-            Value::LimitedMetadata(v) => fmt::Display::fmt(&v, f),
-            Value::Id(v) => fmt::Display::fmt(&v, f),
-            Value::Identifiable(v) => fmt::Display::fmt(&v, f),
-            Value::PublicKey(v) => fmt::Display::fmt(&v, f),
-            Value::Parameter(v) => fmt::Display::fmt(&v, f),
-            Value::SignatureCheckCondition(v) => fmt::Display::fmt(&v, f),
-            Value::TransactionValue(_) => write!(f, "TransactionValue"),
-            Value::TransactionQueryResult(_) => write!(f, "TransactionQueryResult"),
-            Value::PermissionToken(v) => fmt::Display::fmt(&v, f),
-            Value::Hash(v) => fmt::Display::fmt(&v, f),
-            Value::Block(v) => fmt::Display::fmt(&**v, f),
-            Value::BlockHeader(v) => fmt::Display::fmt(&v, f),
-        }
-    }
-}
-
-#[allow(clippy::len_without_is_empty)]
-impl Value {
-    /// Number of underneath expressions.
-    pub fn len(&self) -> usize {
-        use Value::*;
-
-        match self {
-            U32(_)
-            | U128(_)
-            | Id(_)
-            | PublicKey(_)
-            | Bool(_)
-            | Parameter(_)
-            | Identifiable(_)
-            | String(_)
-            | Name(_)
-            | Fixed(_)
-            | TransactionValue(_)
-            | TransactionQueryResult(_)
-            | PermissionToken(_)
-            | Hash(_)
-            | Block(_)
-            | BlockHeader(_) => 1_usize,
-            Vec(v) => v.iter().map(Self::len).sum::<usize>() + 1_usize,
-            LimitedMetadata(data) => data.nested_len() + 1_usize,
-            SignatureCheckCondition(s) => s.0.len(),
-        }
-    }
-}
-
-impl From<BlockValue> for Value {
-    fn from(block_value: BlockValue) -> Self {
-        Value::Block(block_value.into())
-    }
-}
-
 impl<A: SmallArray> From<SmallVec<A>> for Value
 where
     A::Item: Into<Value>,
@@ -658,11 +449,11 @@ where
 macro_rules! from_and_try_from_value_idbox {
     ( $($variant:ident( $ty:ty ),)* $(,)? ) => {
         $(
-            impl TryFrom<Value> for $ty {
-                type Error = ErrorTryFromEnum<Self, Value>;
+            impl TryFrom<$crate::value::Value> for $ty {
+                type Error = ErrorTryFromEnum<Self, $crate::value::Value>;
 
                 fn try_from(value: Value) -> Result<Self, Self::Error> {
-                    if let Value::Id(IdBox::$variant(id)) = value {
+                    if let $crate::value::Value::Id(IdBox::$variant(id)) = value {
                         Ok(id)
                     } else {
                         Err(Self::Error::default())
@@ -670,9 +461,9 @@ macro_rules! from_and_try_from_value_idbox {
                 }
             }
 
-            impl From<$ty> for Value {
+            impl From<$ty> for $crate::value::Value {
                 fn from(id: $ty) -> Self {
-                    Value::Id(IdBox::$variant(id))
+                    $crate::value::Value::Id(IdBox::$variant(id))
                 }
             }
         )*
@@ -682,7 +473,7 @@ macro_rules! from_and_try_from_value_idbox {
 from_and_try_from_value_idbox!(
     PeerId(peer::Id),
     DomainId(domain::Id),
-    AccountId(account::Id),
+    AccountId(<prelude::Account as Identifiable>::Id),
     AssetId(asset::Id),
     AssetDefinitionId(asset::DefinitionId),
     TriggerId(trigger::Id),
@@ -1055,10 +846,11 @@ pub mod prelude {
         name::prelude::*, pagination::prelude::*, peer::prelude::*, role::prelude::*,
         sorting::prelude::*, trigger::prelude::*, EnumTryAsError, HasMetadata, IdBox, Identifiable,
         IdentifiableBox, Parameter, PredicateTrait, RegistrableBox, TryAsMut, TryAsRef,
-        ValidationError, Value,
+        ValidationError,
     };
     pub use crate::{
         events::prelude::*, expression::prelude::*, isi::prelude::*, metadata::prelude::*,
         permissions::prelude::*, query::prelude::*, transaction::prelude::*, trigger::prelude::*,
+        value::prelude::*,
     };
 }

@@ -77,7 +77,7 @@ pub fn get_key_pair() -> KeyPair {
         PublicKey::from_str(
             r#"ed01207233bfc89dcbd68c19fde6ce6158225298ec1131b6a130d1aeb454c1ab5183c0"#,
         )
-        .expect("Public key not in mulithash format"),
+            .expect("Public key not in mulithash format"),
         PrivateKey::from_hex(
             Algorithm::Ed25519,
             "9AC47ABF 59B356E0 BD7DCBBB B4DEC080 E302156A 48CA907E 47CB6AEA 1D32719E 7233BFC8 9DCBD68C 19FDE6CE 61582252 98EC1131 B6A130D1 AEB454C1 AB5183C0",
@@ -92,6 +92,37 @@ pub trait TestGenesis: Sized {
     fn test(submit_genesis: bool) -> Option<Self>;
 }
 
+/// This trait is used to decorate [`AccountId`] and [`Alias`] to produce a quick and easy-to-use syntax for use in tests.
+pub trait AliceKeyTrait {
+    type Result;
+
+    fn alice_key(self) -> Self::Result;
+}
+
+impl AliceKeyTrait for Alias {
+    type Result = <Account as Identifiable>::Id;
+
+    fn alice_key(self) -> Self::Result {
+        let (public_key, _) = get_key_pair().into();
+        Self::Result::new(public_key, self)
+    }
+}
+
+pub trait FreshKeyTrait {
+    type Result;
+
+    fn fresh_key(self) -> Self::Result;
+}
+
+impl FreshKeyTrait for Alias {
+    type Result = <Account as Identifiable>::Id;
+
+    fn fresh_key(self) -> Self::Result {
+        let (public_key, _) = KeyPair::generate().expect("Valid").into();
+        Self::Result::new(public_key, self)
+    }
+}
+
 impl<G: GenesisNetworkTrait> TestGenesis for G {
     fn test(submit_genesis: bool) -> Option<Self> {
         let cfg = Configuration::test();
@@ -102,8 +133,11 @@ impl<G: GenesisNetworkTrait> TestGenesis for G {
         );
         let rose_definition_id = <AssetDefinition as Identifiable>::Id::from_str("rose#wonderland")
             .expect("valid names");
-        let alice_id =
-            <Account as Identifiable>::Id::from_str("alice@wonderland").expect("valid names");
+        let alice_id = {
+            let alias = Alias::from_str("alice@wonderland").expect("Valid");
+            let (public_key, _) = KeyPair::generate().expect("Valid").into();
+            AccountId::new(public_key, alias)
+        };
         let mint_rose_permission: PermissionToken =
             CanMintUserAssetDefinitions::new(rose_definition_id.clone()).into();
         let burn_rose_permission: PermissionToken =
@@ -119,7 +153,7 @@ impl<G: GenesisNetworkTrait> TestGenesis for G {
             RegisterBox::new(AssetDefinition::quantity(
                 AssetDefinitionId::from_str("rose#wonderland").expect("valid names"),
             ))
-            .into(),
+                .into(),
         );
         genesis.transactions[0]
             .isi
@@ -131,14 +165,14 @@ impl<G: GenesisNetworkTrait> TestGenesis for G {
             RegisterBox::new(AssetDefinition::quantity(
                 AssetDefinitionId::from_str("tulip#wonderland").expect("valid names"),
             ))
-            .into(),
+                .into(),
         );
         genesis.transactions[0].isi.push(
             MintBox::new(
                 Value::U32(13),
                 IdBox::AssetId(AssetId::new(rose_definition_id, alice_id)),
             )
-            .into(),
+                .into(),
         );
 
         configure_world();
@@ -149,7 +183,7 @@ impl<G: GenesisNetworkTrait> TestGenesis for G {
             &Some(cfg.genesis),
             &cfg.sumeragi.transaction_limits,
         )
-        .expect("Failed to init genesis")
+            .expect("Failed to init genesis")
     }
 }
 
@@ -244,7 +278,7 @@ where
             maximum_transactions_in_block,
             offline_peers,
         )
-        .await
+            .await
     }
 
     /// Adds peer to network and waits for it to start block
@@ -516,8 +550,8 @@ where
                     broker,
                     telemetry,
                 )
-                .await
-                .expect("Failed to start iroha");
+                    .await
+                    .expect("Failed to start iroha");
                 let job_handle = iroha.start_as_task().unwrap();
                 sender.send(iroha).unwrap();
                 job_handle.await.unwrap().unwrap();
@@ -689,7 +723,7 @@ where
             query_validator,
             temp_dir,
         )
-        .await;
+            .await;
     }
 
     /// Creates and starts a peer with preapplied arguments.
@@ -715,7 +749,7 @@ where
         time::sleep(Duration::from_millis(
             configuration.sumeragi.pipeline_time_ms(),
         ))
-        .await;
+            .await;
 
         (peer, client)
     }
@@ -809,7 +843,7 @@ pub trait TestClient: Sized {
     ) -> eyre::Result<R::Output>
     where
         R: ValidQuery + Into<QueryBox> + Debug + Clone,
-        <R::Output as TryFrom<Value>>::Error: Into<Error>,
+    <R::Output as TryFrom<Value>>::Error: Into<Error>,
         R::Output: Clone + Debug;
 
     /// Submits instructions with polling
@@ -824,7 +858,7 @@ pub trait TestClient: Sized {
     ) -> eyre::Result<R::Output>
     where
         R: ValidQuery + Into<QueryBox> + Debug + Clone,
-        <R::Output as TryFrom<Value>>::Error: Into<Error>,
+    <R::Output as TryFrom<Value>>::Error: Into<Error>,
         R::Output: Clone + Debug;
 
     /// Polls request till predicate `f` is satisfied, with default period and max attempts.
@@ -838,7 +872,7 @@ pub trait TestClient: Sized {
     ) -> eyre::Result<R::Output>
     where
         R: ValidQuery + Into<QueryBox> + Debug + Clone,
-        <R::Output as TryFrom<Value>>::Error: Into<Error>,
+    <R::Output as TryFrom<Value>>::Error: Into<Error>,
         R::Output: Clone + Debug;
 
     /// Polls request till predicate `f` is satisfied with `period` and `max_attempts` supplied.
@@ -854,7 +888,7 @@ pub trait TestClient: Sized {
     ) -> eyre::Result<R::Output>
     where
         R: ValidQuery + Into<QueryBox> + Debug + Clone,
-        <R::Output as TryFrom<Value>>::Error: Into<Error>,
+    <R::Output as TryFrom<Value>>::Error: Into<Error>,
         R::Output: Clone + Debug;
 }
 
@@ -983,7 +1017,7 @@ impl TestClient for Client {
     ) -> eyre::Result<R::Output>
     where
         R: ValidQuery + Into<QueryBox> + Debug + Clone,
-        <R::Output as TryFrom<Value>>::Error: Into<Error>,
+    <R::Output as TryFrom<Value>>::Error: Into<Error>,
         R::Output: Clone + Debug,
     {
         self.submit(instruction)
@@ -999,7 +1033,7 @@ impl TestClient for Client {
     ) -> eyre::Result<R::Output>
     where
         R: ValidQuery + Into<QueryBox> + Debug + Clone,
-        <R::Output as TryFrom<Value>>::Error: Into<Error>,
+    <R::Output as TryFrom<Value>>::Error: Into<Error>,
         R::Output: Clone + Debug,
     {
         self.submit_all(instructions)
@@ -1016,7 +1050,7 @@ impl TestClient for Client {
     ) -> eyre::Result<R::Output>
     where
         R: ValidQuery + Into<QueryBox> + Debug + Clone,
-        <R::Output as TryFrom<Value>>::Error: Into<Error>,
+    <R::Output as TryFrom<Value>>::Error: Into<Error>,
         R::Output: Clone + Debug,
     {
         let mut query_result = None;
@@ -1037,7 +1071,7 @@ impl TestClient for Client {
     ) -> eyre::Result<R::Output>
     where
         R: ValidQuery + Into<QueryBox> + Debug + Clone,
-        <R::Output as TryFrom<Value>>::Error: Into<Error>,
+    <R::Output as TryFrom<Value>>::Error: Into<Error>,
         R::Output: Clone + Debug,
     {
         self.poll_request_with_period(request, Configuration::pipeline_time() / 2, 10, f)

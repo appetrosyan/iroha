@@ -329,6 +329,7 @@ mod tests {
 
     use std::{collections::BTreeSet, str::FromStr as _};
 
+    use iroha_crypto::KeyPair;
     use iroha_data_model::{expression::prelude::*, isi::*};
 
     use super::{judge::DenyAll, prelude::*, *};
@@ -367,8 +368,12 @@ mod tests {
             _instruction: &Instruction,
             _wsv: &WorldStateView,
         ) -> ValidatorVerdict {
-            if authority.name.as_ref() == "alice" {
-                ValidatorVerdict::Deny("Alice account is denied.".to_owned())
+            if let Some(ref alice) = authority.alias {
+                if alice.name.as_ref() == "alice" {
+                    ValidatorVerdict::Deny("Alice account is denied.".to_owned())
+                } else {
+                    ValidatorVerdict::Skip
+                }
             } else {
                 ValidatorVerdict::Skip
             }
@@ -455,8 +460,16 @@ mod tests {
         let instruction_fail = Instruction::Fail(FailBox {
             message: "fail message".to_owned(),
         });
-        let account_bob = <Account as Identifiable>::Id::from_str("bob@test").expect("Valid");
-        let account_alice = <Account as Identifiable>::Id::from_str("alice@test").expect("Valid");
+        let account_bob = {
+            let alias = Alias::from_str("bob@test").expect("Valid");
+            let (public_key, _) = KeyPair::generate().expect("Valid").into();
+            AccountId::new(public_key, alias)
+        };
+        let account_alice = {
+            let alias = Alias::from_str("alice@test").expect("Valid");
+            let (public_key, _) = KeyPair::generate().expect("Valid").into();
+            AccountId::new(public_key, alias)
+        };
         let wsv = WorldStateView::new(World::new());
         assert!(permissions_validator
             .judge(&account_bob, &instruction_burn, &wsv)
@@ -484,7 +497,11 @@ mod tests {
         });
         let nested_instruction_sequence =
             Instruction::If(If::new(true, instruction_burn.clone()).into());
-        let account_alice = <Account as Identifiable>::Id::from_str("alice@test").expect("Valid");
+        let account_alice = {
+            let alias = Alias::from_str("alice@test").expect("Valid");
+            let (public_key, _) = KeyPair::generate().expect("Valid").into();
+            AccountId::new(public_key, alias)
+        };
         let wsv = WorldStateView::new(World::new());
         assert!(permissions_validator
             .judge(&account_alice, &instruction_fail, &wsv)
@@ -499,15 +516,23 @@ mod tests {
 
     #[test]
     pub fn granted_permission() -> eyre::Result<()> {
-        let alice_id = <Account as Identifiable>::Id::from_str("alice@test")?;
-        let bob_id = <Account as Identifiable>::Id::from_str("bob@test")?;
+        let alice_id = {
+            let alias = Alias::from_str("alice@test")?;
+            let (public_key, _) = KeyPair::generate().expect("Valid").into();
+            AccountId::new(public_key, alias)
+        };
+        let bob_id = {
+            let alias = Alias::from_str("bob@test")?;
+            let (public_key, _) = KeyPair::generate().expect("Valid").into();
+            AccountId::new(public_key, alias)
+        };
         let alice_xor_id = <Asset as Identifiable>::Id::new(
             AssetDefinitionId::from_str("xor#test").expect("Valid"),
-            AccountId::from_str("alice@test").expect("Valid"),
+            alice_id.clone(),
         );
         let instruction_burn: Instruction = BurnBox::new(Value::U32(10), alice_xor_id).into();
         let mut domain = Domain::new(DomainId::from_str("test").expect("Valid")).build();
-        let mut bob_account = Account::new(bob_id.clone(), []).build();
+        let mut bob_account = Account::from_id(bob_id.clone()).build();
         assert!(bob_account.add_permission(TestToken.into()));
         assert!(domain.add_account(bob_account).is_none());
         let wsv = WorldStateView::new(World::with([domain], BTreeSet::new()));
@@ -521,40 +546,41 @@ mod tests {
 
     #[test]
     pub fn check_query_permissions_nested() {
-        let instruction: Instruction = Pair::new(
-            TransferBox::new(
-                asset_id("btc", "crypto", "seller", "company"),
-                EvaluatesTo::new_evaluates_to_value(
-                    Add::new(
-                        EvaluatesTo::new_unchecked(
-                            Expression::Query(
-                                FindAssetQuantityById::new(AssetId::new(
-                                    AssetDefinitionId::from_str("btc2eth_rate#exchange")
-                                        .expect("Valid"),
-                                    AccountId::from_str("dex@exchange").expect("Valid"),
-                                ))
-                                .into(),
-                            )
-                            .into(),
-                        ),
-                        10_u32,
-                    )
-                    .into(),
-                ),
-                asset_id("btc", "crypto", "buyer", "company"),
-            ),
-            TransferBox::new(
-                asset_id("eth", "crypto", "buyer", "company"),
-                15_u32,
-                asset_id("eth", "crypto", "seller", "company"),
-            ),
-        )
-        .into();
-        let wsv = WorldStateView::new(World::new());
-        let alice_id = <Account as Identifiable>::Id::from_str("alice@test").expect("Valid");
-        let judge = JudgeBuilder::with_validator(DenyAll::new().into_validator())
-            .no_denies()
-            .build();
-        assert!(check_query_in_instruction(&alice_id, &instruction, &wsv, &judge).is_err())
+        // let instruction: Instruction = Pair::new(
+        //     TransferBox::new(
+        //         asset_id("btc", "crypto", "seller", "company"),
+        //         EvaluatesTo::new_evaluates_to_value(
+        //             Add::new(
+        //                 EvaluatesTo::new_unchecked(
+        //                     Expression::Query(
+        //                         FindAssetQuantityById::new(AssetId::new(
+        //                             AssetDefinitionId::from_str("btc2eth_rate#exchange")
+        //                                 .expect("Valid"),
+        //                             Alias::from_str("dex@exchange").expect("Valid"),
+        //                         ))
+        //                             .into(),
+        //                     )
+        //                         .into(),
+        //                 ),
+        //                 10_u32,
+        //             )
+        //                 .into(),
+        //         ),
+        //         asset_id("btc", "crypto", "buyer", "company"),
+        //     ),
+        //     TransferBox::new(
+        //         asset_id("eth", "crypto", "buyer", "company"),
+        //         15_u32,
+        //         asset_id("eth", "crypto", "seller", "company"),
+        //     ),
+        // )
+        //     .into();
+        // let wsv = WorldStateView::new(World::new());
+        // let alice_id = Alias::from_str("alice@test").expect("Valid");
+        // let judge = JudgeBuilder::with_validator(DenyAll::new().into_validator())
+        //     .no_denies()
+        //     .build();
+        // assert!(check_query_in_instruction(&alice_id, &instruction, &wsv, &judge).is_err())
+        todo!()
     }
 }

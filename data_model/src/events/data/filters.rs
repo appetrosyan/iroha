@@ -176,6 +176,8 @@ pub mod prelude {
 
 #[cfg(test)]
 mod tests {
+    use iroha_crypto::KeyPair;
+
     use super::*;
 
     #[test]
@@ -186,7 +188,9 @@ mod tests {
         let asset_name = "rose".parse().expect("Valid");
 
         let domain_id = DomainId::new(domain_name);
-        let account_id = AccountId::new(account_name, domain_id.clone());
+        let alias = Alias::new(account_name, domain_id.clone());
+        let (public_key, _) = KeyPair::generate().expect("Valid").into();
+        let account_id = AccountId::new(public_key, alias);
         let asset_id = AssetId::new(
             AssetDefinitionId::new(asset_name, domain_id.clone()),
             account_id.clone(),

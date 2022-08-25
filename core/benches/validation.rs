@@ -13,8 +13,8 @@ use iroha_data_model::prelude::*;
 
 const TRANSACTION_TIME_TO_LIVE_MS: u64 = 100_000;
 
-const START_DOMAIN: &str = "start";
-const START_ACCOUNT: &str = "starter";
+const START_DOMAIN: &str = "looking_glass";
+const START_ACCOUNT: &str = "dormouse";
 
 const TRANSACTION_LIMITS: TransactionLimits = TransactionLimits {
     max_instruction_number: 4096,
@@ -30,7 +30,7 @@ fn build_test_transaction(keys: KeyPair) -> Transaction {
         .expect("Failed to generate KeyPair.")
         .into();
     let create_account = RegisterBox::new(Account::new(
-        AccountId::new(
+        Alias::new(
             account_name.parse().expect("Valid"),
             domain_name.parse().expect("Valid"),
         ),
@@ -64,7 +64,7 @@ fn build_test_wsv(keys: KeyPair) -> WorldStateView {
     WorldStateView::new({
         let domain_id = DomainId::from_str(START_DOMAIN).expect("Valid");
         let mut domain = Domain::new(domain_id).build();
-        let account_id = AccountId::new(
+        let account_id = Alias::new(
             START_ACCOUNT.parse().expect("Valid"),
             START_DOMAIN.parse().expect("Valid"),
         );
@@ -198,7 +198,7 @@ fn validate_blocks(criterion: &mut Criterion) {
     // Prepare WSV
     let key_pair = KeyPair::generate().expect("Failed to generate KeyPair.");
     let domain_name = "global";
-    let account_id = AccountId::new(
+    let account_id = Alias::new(
         "root".parse().expect("Valid"),
         domain_name.parse().expect("Valid"),
     );

@@ -36,51 +36,25 @@ use crate::{
     permissions::{PermissionToken, Permissions},
     prelude::Asset,
     role::{prelude::RoleId, RoleIds},
-    HasMetadata, Identifiable, Name, ParseError, PublicKey, Registered,
+    HasMetadata, Identifiable, Name, ParseError, PublicKey, Registered, value::Value,
 };
 
-/// `AccountsMap` provides an API to work with collection of key (`Id`) - value
-/// (`Account`) pairs.
+/// `AccountsMap` provides an API to work with collection of key
+/// (`Alias`) - value (`Account`) pairs.
 pub type AccountsMap = btree_map::BTreeMap<<Account as Identifiable>::Id, Account>;
 
 // The size of the array must be fixed. If we use more than `1` we
-// waste all of that space for all non-multisig accounts. If we
-// have 1 signatory per account, we keep the signature on the
-// stack. If we have more than 1, we keep everything on the
-// heap. Thanks to the union feature, we're not wasting `8Bytes`
-// of space, over `Vec`.
+// waste all of that space for all non-multisig accounts. If we have 1
+// signatory per account, we keep the signature on the stack. If we
+// have more than 1, we keep everything on the heap. Thanks to the
+// union feature, we're not wasting `8Bytes` of space, over `Vec`.
 type Signatories = btree_set::BTreeSet<PublicKey>;
-
-/// Genesis account name.
-pub const GENESIS_ACCOUNT_NAME: &str = "genesis";
 
 /// The context value name for transaction signatories.
 pub const TRANSACTION_SIGNATORIES_VALUE: &str = "transaction_signatories";
 
 /// The context value name for account signatories.
 pub const ACCOUNT_SIGNATORIES_VALUE: &str = "account_signatories";
-
-/// Genesis account. Used to mainly be converted to ordinary `Account` struct.
-#[derive(Debug, Decode, Encode, Deserialize, Serialize, IntoSchema)]
-pub struct GenesisAccount {
-    public_key: PublicKey,
-}
-
-impl GenesisAccount {
-    /// Returns `GenesisAccount` instance.
-    #[must_use]
-    pub const fn new(public_key: PublicKey) -> Self {
-        GenesisAccount { public_key }
-    }
-}
-
-#[cfg(feature = "mutable_api")]
-impl From<GenesisAccount> for Account {
-    #[inline]
-    fn from(account: GenesisAccount) -> Self {
-        Account::new(Id::genesis(), [account.public_key]).build()
-    }
-}
 
 /// Condition which checks if the account has the right signatures.
 #[derive(
@@ -128,7 +102,7 @@ impl Default for SignatureCheckCondition {
                 EvaluatesTo::new_unchecked(ContextValue::new(TRANSACTION_SIGNATORIES_VALUE).into()),
                 EvaluatesTo::new_unchecked(ContextValue::new(ACCOUNT_SIGNATORIES_VALUE).into()),
             )
-            .into(),
+                .into(),
         )
     }
 }
@@ -191,13 +165,23 @@ impl HasMetadata for NewAccount {
 )]
 #[cfg_attr(feature = "ffi_import", iroha_ffi::ffi_import)]
 impl NewAccount {
-    fn new(
-        id: <Account as Identifiable>::Id,
-        signatories: impl IntoIterator<Item = PublicKey>,
-    ) -> Self {
+    fn new(alias: Alias, signatories: impl IntoIterator<Item = PublicKey>) -> Self {
+        let mut sig = signatories.into_iter();
+        let primary_key = sig
+            .next()
+            .expect("Must have at least one key. Verify before this function call"); // TODO: come up with a `NonEmptyIter` trait.
+        let id = <Self as Identifiable>::Id::new(primary_key, alias);
         Self {
             id,
-            signatories: signatories.into_iter().collect(),
+            signatories: sig.collect(),
+            metadata: Metadata::default(),
+        }
+    }
+
+    pub fn from_id(addr: Id) -> Self {
+        Self {
+            id: addr.clone(),
+            signatories: [addr.primary_key].into_iter().collect(),
             metadata: Metadata::default(),
         }
     }
@@ -273,10 +257,10 @@ impl Registered for Account {
 )]
 #[cfg_attr(feature = "ffi_import", iroha_ffi::ffi_import)]
 impl Account {
-    /// Construct builder for [`Account`] identifiable by [`Id`] containing the given signatories.
+    /// Construct builder for [`Account`] identifiable by [`Alias`] containing the given signatories.
     #[must_use]
     pub fn new(
-        id: <Self as Identifiable>::Id,
+        id: Alias,
         signatories: impl IntoIterator<Item = PublicKey>,
     ) -> <Self as Registered>::With {
         <Self as Registered>::With::new(id, signatories)
@@ -342,13 +326,19 @@ impl Account {
         self.signatories.insert(signatory)
     }
 
-    /// Remove a signatory from the `Account` and return whether the signatory was present in the `Account`
+    pub fn from_id(addr: Id) -> <Self as Registered>::With {
+        <Self as Registered>::With::from_id(addr)
+    }
+
+    /// Remove a signatory from the `Account` and return whether the
+    /// `signatory` was present in the `Account`.
     #[inline]
     pub fn remove_signatory(&mut self, signatory: &PublicKey) -> bool {
         self.signatories.remove(signatory)
     }
 
-    /// Return a mutable reference to the [`Asset`] corresponding to the asset id
+    /// Return a mutable reference to the [`Asset`] corresponding to
+    /// the `asset_id`
     #[inline]
     pub fn asset_mut(&mut self, asset_id: &AssetId) -> Option<&mut Asset> {
         self.assets.get_mut(asset_id)
@@ -410,10 +400,11 @@ impl FromIterator<Account> for crate::Value {
 ///
 /// # Examples
 ///
+
 /// ```rust
-/// use iroha_data_model::account::Id;
+/// use iroha_data_model::account::Alias;
 ///
-/// let id = "user@company".parse::<Id>().expect("Valid");
+/// let id = "user@company".parse::<Alias>().expect("No whitespace and proper format");
 /// ```
 #[derive(
     Debug,
@@ -433,35 +424,74 @@ impl FromIterator<Account> for crate::Value {
     IntoSchema,
 )]
 #[display(fmt = "{name}@{domain_id}")]
-pub struct Id {
+pub struct Alias {
     /// [`Account`]'s name.
     pub name: Name,
     /// [`Account`]'s [`Domain`](`crate::domain::Domain`)'s id.
     pub domain_id: <Domain as Identifiable>::Id,
 }
 
-impl Id {
-    /// Construct [`Id`] from an account `name` and a `domain_name` if
+pub type Address = PublicKey;
+
+impl Alias {
+    /// Construct [`Alias`] from an account `name` and a `domain_name` if
     /// these names are valid.
     #[inline]
+    #[must_use]
     pub const fn new(name: Name, domain_id: <Domain as Identifiable>::Id) -> Self {
         Self { name, domain_id }
     }
 
-    /// Construct [`Id`] of the genesis account.
     #[inline]
     #[must_use]
-    pub fn genesis() -> Self {
-        #[allow(clippy::expect_used)]
+    pub fn key(self, key: PublicKey) -> Id {
+        Id::new(key, self)
+    }
+}
+
+impl From<Value> for Alias {
+    fn from(_: Value) -> Self {
+        todo!()
+    }
+}
+
+/// The actual address that is being used to find the account in the world.
+#[derive(
+    Debug,
+    Display,
+    Clone,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Decode,
+    Encode,
+    Deserialize,
+    Serialize,
+    IntoFfi,
+    TryFromReprC,
+    IntoSchema,
+)]
+#[display(fmt = "{alias:?}")]
+pub struct Id {
+    /// The primary key used for identification.
+    pub primary_key: Address,
+    /// The alias used for old register-first identification of accounts.
+    pub alias: Option<Alias>,
+}
+
+impl Id {
+    pub fn new(primary_key: PublicKey, alias: Alias) -> Self {
         Self {
-            name: Name::from_str(GENESIS_ACCOUNT_NAME).expect("Valid"),
-            domain_id: DomainId::from_str(GENESIS_DOMAIN_NAME).expect("Valid"),
+            primary_key,
+            alias: Some(alias),
         }
     }
 }
 
 /// Account Identification is represented by `name@domain_name` string.
-impl FromStr for Id {
+impl FromStr for Alias {
     type Err = ParseError;
 
     fn from_str(string: &str) -> Result<Self, Self::Err> {
@@ -475,7 +505,7 @@ impl FromStr for Id {
 
         if vector.len() != 2 {
             return Err(ParseError {
-                reason: "Id should have format `name@domain_name`",
+                reason: "Alias should have format `name@domain_name`",
             });
         }
         Ok(Self {
@@ -485,7 +515,67 @@ impl FromStr for Id {
     }
 }
 
+pub mod genesis {
+    //! Genesis representation of accounts.
+    use super::*;
+
+    /// Genesis account name.
+    pub const GENESIS_ACCOUNT_NAME: &str = "genesis";
+
+    pub trait Genesis {
+        fn genesis() -> Self;
+    }
+
+    impl Genesis for Alias {
+        /// Construct [`Alias`] of the genesis account.
+        #[inline]
+        #[must_use]
+        fn genesis() -> Self {
+            #[allow(clippy::expect_used)]
+            Self {
+                name: Name::from_str(GENESIS_ACCOUNT_NAME).expect("Valid"),
+                domain_id: DomainId::from_str(GENESIS_DOMAIN_NAME).expect("Valid"),
+            }
+        }
+    }
+
+    impl Genesis for Id {
+        fn genesis() -> Self {
+            todo!()
+        }
+    }
+
+    impl Id {
+        pub fn domain_id(&self) -> Option<&crate::domain::Id> {
+            todo!()
+        }
+    }
+
+    /// Genesis account. Used to mainly be converted to an ordinary
+    /// `Account` struct after the genesis round.
+    #[derive(Debug, Decode, Encode, Deserialize, Serialize, IntoSchema)]
+    pub struct GenesisAccount {
+        public_key: PublicKey,
+    }
+
+    impl GenesisAccount {
+        /// Returns `GenesisAccount` instance.
+        #[must_use]
+        pub const fn new(public_key: PublicKey) -> Self {
+            GenesisAccount { public_key }
+        }
+    }
+
+    #[cfg(feature = "mutable_api")]
+    impl From<GenesisAccount> for Account {
+        #[inline]
+        fn from(account: GenesisAccount) -> Self {
+            Account::new(Alias::genesis(), [account.public_key]).build()
+        }
+    }
+}
+
 /// The prelude re-exports most commonly used traits, structs and macros from this crate.
 pub mod prelude {
-    pub use super::{Account, Id as AccountId, SignatureCheckCondition};
+    pub use super::{genesis::Genesis, Account, Alias, Id as AccountId, SignatureCheckCondition};
 }

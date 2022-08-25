@@ -135,7 +135,13 @@ impl Configuration {
     /// Account ID used by default for demo purposes
     #[allow(clippy::expect_used)]
     fn placeholder_account() -> <Account as Identifiable>::Id {
-        AccountId::from_str("alice@wonderland").expect("Account ID not valid")
+        let primary_key = "ed01207233bfc89dcbd68c19fde6ce6158225298ec1131b6a130d1aeb454c1ab5183c0"
+            .parse()
+            .expect("Public key not in mulithash format");
+        AccountId {
+            primary_key,
+            alias: None
+        }
     }
 
     // TODO: Delete this after `LoadFromDisk` is implemented

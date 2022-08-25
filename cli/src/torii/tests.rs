@@ -18,9 +18,9 @@ use iroha_core::{
     tx::TransactionValidator,
     wsv::World,
 };
-use iroha_data_model::{account::GENESIS_ACCOUNT_NAME, predicate::PredicateBox, prelude::*};
+use iroha_data_model::{account::genesis::GENESIS_ACCOUNT_NAME, predicate::PredicateBox, prelude::*};
 use iroha_version::prelude::*;
-use test_network::{prepare_test_for_nextest, unique_port};
+use test_network::*;
 use tokio::time;
 use warp::test::WsClient;
 
@@ -35,7 +35,7 @@ async fn create_torii() -> (Torii, KeyPair) {
     config.torii.p2p_addr = format!("127.0.0.1:{}", unique_port::get_unique_free_port().unwrap());
     config.torii.api_url = format!("127.0.0.1:{}", unique_port::get_unique_free_port().unwrap());
     config.torii.telemetry_url =
-        format!("127.0.0.1:{}", unique_port::get_unique_free_port().unwrap());
+        format!("127.0.0.1:{}", unique_port::get_unique_free_port().expect("Valid"));
     let (events, _) = tokio::sync::broadcast::channel(100);
     let wsv = Arc::new(WorldStateView::new(World::with(
         ('a'..='z')
@@ -49,7 +49,7 @@ async fn create_torii() -> (Torii, KeyPair) {
     assert!(domain
         .add_account(
             Account::new(
-                AccountId::from_str("alice@wonderland").expect("Valid"),
+                Alias::from_str("alice@wonderland").expect("Valid"),
                 [keys.public_key().clone()],
             )
             .build()
@@ -100,7 +100,7 @@ async fn torii_pagination() {
     let get_domains = |start, limit| {
         let query: VerifiedQueryRequest = QueryRequest::new(
             QueryBox::FindAllDomains(Default::default()),
-            AccountId::from_str("alice@wonderland").expect("Valid"),
+            Alias::from_str("alice@wonderland").expect("Valid").alice_key(),
             PredicateBox::default(),
         )
         .sign(keys.clone())
@@ -185,7 +185,7 @@ impl QuerySet {
             torii.query_judge = Arc::new(DenyAll::new());
         }
 
-        let authority = AccountId::from_str("alice@wonderland").expect("Valid");
+        let authority = Alias::from_str("alice@wonderland").expect("Valid").alice_key();
         for instruction in self.instructions {
             instruction
                 .execute(authority.clone(), &torii.wsv)
@@ -199,9 +199,9 @@ impl QuerySet {
             self.account.unwrap_or(authority),
             PredicateBox::default(),
         )
-        .sign(self.keys.unwrap_or(keys))
-        .expect("Failed to sign query with keys")
-        .into();
+            .sign(self.keys.unwrap_or(keys))
+            .expect("Failed to sign query with keys")
+            .into();
 
         let response = warp::test::request()
             .method("POST")
@@ -289,7 +289,7 @@ fn register_domain() -> Instruction {
 fn register_account(name: &str) -> Instruction {
     let (public_key, _) = KeyPair::generate().unwrap().into();
     RegisterBox::new(Account::new(
-        AccountId::new(name.parse().expect("Valid"), DOMAIN.parse().expect("Valid")),
+        Alias::new(name.parse().expect("Valid"), DOMAIN.parse().expect("Valid")),
         [public_key],
     ))
     .into()

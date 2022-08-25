@@ -51,11 +51,12 @@ fn query_requests(criterion: &mut Criterion) {
     let mut group = criterion.benchmark_group("query-requests");
     let domain_id: DomainId = "domain".parse().expect("Valid");
     let create_domain = RegisterBox::new(Domain::new(domain_id.clone()));
-    let account_id = AccountId::new("account".parse().expect("Valid"), domain_id.clone());
     let (public_key, _) = KeyPair::generate()
         .expect("Failed to generate KeyPair")
         .into();
-    let create_account = RegisterBox::new(Account::new(account_id.clone(), [public_key]));
+    let account_alias = Alias::new("account".parse().expect("Valid"), domain_id.clone());
+    let account_id = AccountId::new(public_key.clone(), account_alias);
+    let create_account = RegisterBox::new(Account::from_id(account_id.clone()));
     let asset_definition_id = AssetDefinitionId::new("xor".parse().expect("Valid"), domain_id);
     let create_asset = RegisterBox::new(AssetDefinition::quantity(asset_definition_id.clone()));
     let quantity: u32 = 200;
@@ -143,11 +144,12 @@ fn instruction_submits(criterion: &mut Criterion) {
     let mut group = criterion.benchmark_group("instruction-requests");
     let domain_id: DomainId = "domain".parse().expect("Valid");
     let create_domain = RegisterBox::new(Domain::new(domain_id.clone()));
-    let account_id = AccountId::new("account".parse().expect("Valid"), domain_id.clone());
+    let alias = Alias::new("account".parse().expect("Valid"), domain_id.clone());
     let (public_key, _) = KeyPair::generate()
         .expect("Failed to generate Key-pair.")
         .into();
-    let create_account = RegisterBox::new(Account::new(account_id.clone(), [public_key]));
+    let account_id = AccountId::new(public_key.clone(), alias);
+    let create_account = RegisterBox::new(Account::from_id(account_id.clone()));
     let asset_definition_id = AssetDefinitionId::new("xor".parse().expect("Valid"), domain_id);
     let mut client_config = iroha_client::samples::get_client_config(&get_key_pair());
     client_config.torii_api_url = SmallStr::from_string(peer.api_address.clone());

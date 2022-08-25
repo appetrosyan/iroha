@@ -6,6 +6,7 @@ use iroha_client::client::{account, transaction, Client};
 use iroha_core::prelude::*;
 use iroha_data_model::prelude::*;
 use test_network::*;
+use eyre::Result;
 
 use super::Configuration;
 
@@ -26,16 +27,16 @@ fn account_keys_count(client: &mut Client, account_id: AccountId) -> usize {
 }
 
 #[test]
-fn public_keys_cannot_be_burned_to_nothing() {
+fn public_keys_cannot_be_burned_to_nothing() -> Result<()> {
     prepare_test_for_nextest!();
     const KEYS_COUNT: usize = 3;
-    let bob_id: AccountId = "bob@wonderland".parse().expect("Valid");
+    let bob_id = "bob@wonderland".parse::<Alias>()?.fresh_key();
     let bob_keys_count = |client: &mut Client| account_keys_count(client, bob_id.clone());
 
     let (_rt, _peer, mut client) = <PeerBuilder>::new().start_with_runtime();
     wait_for_genesis_committed(&vec![client.clone()], 0);
 
-    let register_bob = RegisterBox::new(Account::new(bob_id.clone(), [])).into();
+    let register_bob = RegisterBox::new(Account::from_id(bob_id.clone())).into();
 
     let _ = submit_and_get(&mut client, [register_bob]);
     let mut keys_count = bob_keys_count(&mut client);
@@ -69,4 +70,5 @@ fn public_keys_cannot_be_burned_to_nothing() {
         committed_txn,
         TransactionValue::RejectedTransaction(_)
     ));
+    Ok(())
 }
