@@ -1,6 +1,6 @@
 #![allow(clippy::restriction)]
 
-use std::{thread, time::Duration};
+use std::{str::FromStr as _, thread, time::Duration};
 
 use iroha_client::client::{self, Client};
 use iroha_crypto::KeyPair;
@@ -8,8 +8,6 @@ use iroha_data_model::prelude::*;
 use iroha_logger::Level;
 use test_network::*;
 use tokio::runtime::Runtime;
-
-use std::str::FromStr as  _;
 
 use super::Configuration;
 

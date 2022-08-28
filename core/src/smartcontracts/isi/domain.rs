@@ -62,13 +62,16 @@ pub mod isi {
         ) -> Result<(), Self::Error> {
             let account_id = self.object_id;
 
-            wsv.modify_domain(&account_id.domain_id().ok_or(Error::BareAccount)?.clone(), |domain| {
-                if domain.remove_account(&account_id).is_none() {
-                    return Err(FindError::Account(account_id).into());
-                }
+            wsv.modify_domain(
+                &account_id.domain_id().ok_or(Error::BareAccount)?.clone(),
+                |domain| {
+                    if domain.remove_account(&account_id).is_none() {
+                        return Err(FindError::Account(account_id).into());
+                    }
 
-                Ok(DomainEvent::Account(AccountEvent::Deleted(account_id)))
-            })
+                    Ok(DomainEvent::Account(AccountEvent::Deleted(account_id)))
+                },
+            )
         }
     }
 

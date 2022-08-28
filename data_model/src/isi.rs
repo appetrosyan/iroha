@@ -12,8 +12,7 @@ use iroha_schema::IntoSchema;
 use parity_scale_codec::{Decode, Encode};
 use serde::{Deserialize, Serialize};
 
-use crate::Registered;
-use crate::{expression::EvaluatesTo, prelude::*, value::Value, IdBox, RegistrableBox};
+use crate::{expression::EvaluatesTo, prelude::*, value::Value, IdBox, Registered, RegistrableBox};
 
 /// Sized structure for all possible Instructions.
 #[derive(

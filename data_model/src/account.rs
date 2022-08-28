@@ -36,7 +36,8 @@ use crate::{
     permissions::{PermissionToken, Permissions},
     prelude::Asset,
     role::{prelude::RoleId, RoleIds},
-    HasMetadata, Identifiable, Name, ParseError, PublicKey, Registered, value::Value,
+    value::Value,
+    HasMetadata, Identifiable, Name, ParseError, PublicKey, Registered,
 };
 
 /// `AccountsMap` provides an API to work with collection of key
@@ -102,7 +103,7 @@ impl Default for SignatureCheckCondition {
                 EvaluatesTo::new_unchecked(ContextValue::new(TRANSACTION_SIGNATORIES_VALUE).into()),
                 EvaluatesTo::new_unchecked(ContextValue::new(ACCOUNT_SIGNATORIES_VALUE).into()),
             )
-                .into(),
+            .into(),
         )
     }
 }
@@ -488,6 +489,14 @@ impl Id {
             alias: Some(alias),
         }
     }
+
+    pub fn domain_id(&self) -> Option<&crate::domain::Id> {
+        if let Some(ref alias) = self.alias {
+            Some(&alias.domain_id)
+        } else {
+            None
+        }
+    }
 }
 
 /// Account Identification is represented by `name@domain_name` string.
@@ -515,6 +524,20 @@ impl FromStr for Alias {
     }
 }
 
+pub trait SomeEquals<T: PartialEq> {
+    fn some_equal(&self, other: &T) -> bool;
+}
+
+impl<T: PartialEq> SomeEquals<T> for Option<T> {
+    fn some_equal(&self, other: &T) -> bool {
+        if let Some(my) = self {
+            *my == *other
+        } else {
+            false
+        }
+    }
+}
+
 pub mod genesis {
     //! Genesis representation of accounts.
     use super::*;
@@ -536,18 +559,6 @@ pub mod genesis {
                 name: Name::from_str(GENESIS_ACCOUNT_NAME).expect("Valid"),
                 domain_id: DomainId::from_str(GENESIS_DOMAIN_NAME).expect("Valid"),
             }
-        }
-    }
-
-    impl Genesis for Id {
-        fn genesis() -> Self {
-            todo!()
-        }
-    }
-
-    impl Id {
-        pub fn domain_id(&self) -> Option<&crate::domain::Id> {
-            todo!()
         }
     }
 

@@ -6,7 +6,6 @@ use core::cmp::Ordering;
 
 #[cfg(not(target_arch = "aarch64"))]
 use derive_more::Into;
-
 use derive_more::{AsRef, Deref, Display, From};
 use iroha_crypto::{Hash, HashOf, MerkleTree};
 use iroha_schema::IntoSchema;

@@ -1,11 +1,12 @@
-use crate::alloc;
-use crate::ParseError;
 use core::str::FromStr;
+
 use iroha_ffi::{IntoFfi, TryFromReprC};
 use iroha_primitives::conststr::ConstString;
 use iroha_schema::IntoSchema;
 use parity_scale_codec::{Decode, Encode};
 use serde::{Deserialize, Serialize};
+
+use crate::{alloc, ParseError};
 
 /// Represents path in IPFS. Performs checks to ensure path validity.
 /// Construct using [`FromStr::from_str`] method.

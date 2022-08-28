@@ -151,9 +151,7 @@ impl MeasurerUnit {
         };
         let asset_id = asset_id(self.name);
 
-        let register_me = RegisterBox::new(Account::from_id(
-            account_id.clone() ,
-        ));
+        let register_me = RegisterBox::new(Account::from_id(account_id.clone()));
         self.client.submit_blocking(register_me)?;
 
         let can_burn_my_asset: PermissionToken = CanBurnUserAssets::new(asset_id.clone()).into();

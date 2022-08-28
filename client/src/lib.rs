@@ -23,7 +23,10 @@ pub mod samples {
         Configuration {
             public_key: public_key.clone(),
             private_key,
-            account_id: AccountId::new(public_key, "alice@wonderland".parse().expect("Should not fail.")),
+            account_id: AccountId::new(
+                public_key,
+                "alice@wonderland".parse().expect("Should not fail."),
+            ),
             torii_api_url: iroha_primitives::small::SmallStr::from_str(uri::DEFAULT_API_URL),
             ..Configuration::default()
         }

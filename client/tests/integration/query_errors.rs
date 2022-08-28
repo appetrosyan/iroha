@@ -10,11 +10,13 @@ use test_network::FreshKeyTrait as _;
 #[test]
 fn non_existent_account_is_specific_error() {
     let (_rt, _peer, client) = <test_network::PeerBuilder>::new().start_with_runtime();
-    // we don't need to wait for genesis to be committed. 
+    // we don't need to wait for genesis to be committed.
 
     let err = client
         .request(client::account::by_id(
-            Alias::from_str("john_doe@regalia").expect("valid name").fresh_key(),
+            Alias::from_str("john_doe@regalia")
+                .expect("valid name")
+                .fresh_key(),
         ))
         .expect_err("Should error");
 

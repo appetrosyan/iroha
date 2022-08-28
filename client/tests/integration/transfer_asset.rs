@@ -1,11 +1,12 @@
 #![allow(clippy::restriction, clippy::pedantic)]
 
+use std::str::FromStr as _;
+
 use iroha_client::client;
 use iroha_core::prelude::*;
 use iroha_data_model::{prelude::*, Registered};
 use iroha_primitives::fixed::Fixed;
 use test_network::*;
-use std::str::FromStr as _;
 
 #[test]
 fn simulate_transfer_quantity() {

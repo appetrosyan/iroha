@@ -19,11 +19,11 @@ fn genesis_block_is_commited_with_some_offline_peers() -> eyre::Result<()> {
     let alice_has_roses = 13;
 
     //Then
-    let assets = iroha_client
-        .request(client::asset::by_account_id(alice_id))?;
+    let assets = iroha_client.request(client::asset::by_account_id(alice_id))?;
     let asset = assets
         .iter()
-        .find(|asset| asset.id().definition_id == ("rose#wonderland".parse()).expect("Valid")).ok_or(eyre::eyre!("Failed to find asset. "))?;
+        .find(|asset| asset.id().definition_id == ("rose#wonderland".parse()).expect("Valid"))
+        .ok_or(eyre::eyre!("Failed to find asset. "))?;
     assert_eq!(AssetValue::Quantity(alice_has_roses), *asset.value());
     Ok(())
 }

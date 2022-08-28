@@ -689,7 +689,9 @@ mod tests {
             isi_len = isi_hex.len() / 3,
         );
         let mut runtime = Runtime::new()?;
-        runtime.execute(&wsv, addr, wat).wrap_err("Execution failed")?;
+        runtime
+            .execute(&wsv, addr, wat)
+            .wrap_err("Execution failed")?;
 
         Ok(())
     }
@@ -785,9 +787,9 @@ mod tests {
 
         if let Error::ExportFnCall(trap) = res.expect_err("Execution should fail") {
             assert!(trap
-                    .display_reason()
-                    .to_string()
-                    .starts_with("Number of instructions exceeds maximum(1)"));
+                .display_reason()
+                .to_string()
+                .starts_with("Number of instructions exceeds maximum(1)"));
         }
 
         Ok(())
@@ -841,9 +843,9 @@ mod tests {
 
         if let Error::ExportFnCall(trap) = res.expect_err("Execution should fail") {
             assert!(trap
-                    .display_reason()
-                    .to_string()
-                    .starts_with("Transaction rejected due to insufficient authorisation"));
+                .display_reason()
+                .to_string()
+                .starts_with("Transaction rejected due to insufficient authorisation"));
         }
 
         Ok(())

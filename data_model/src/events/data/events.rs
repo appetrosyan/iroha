@@ -280,13 +280,13 @@ mod account {
             match self {
                 Self::Asset(asset) => &asset.origin_id().account_id,
                 Self::Created(id)
-                    | Self::Deleted(id)
-                    | Self::AuthenticationAdded(id)
-                    | Self::AuthenticationRemoved(id)
-                    | Self::PermissionAdded(id)
-                    | Self::PermissionRemoved(id)
-                    | Self::RoleRevoked(id)
-                    | Self::RoleGranted(id)
+                | Self::Deleted(id)
+                | Self::AuthenticationAdded(id)
+                | Self::AuthenticationRemoved(id)
+                | Self::PermissionAdded(id)
+                | Self::PermissionRemoved(id)
+                | Self::RoleRevoked(id)
+                | Self::RoleGranted(id)
                 | Self::MetadataInserted(id)
                 | Self::MetadataRemoved(id) => id,
             }

@@ -20,13 +20,11 @@ use alloc::{
     string::{String, ToString},
     vec::Vec,
 };
-use value::Value;
 use core::{convert::AsRef, fmt, fmt::Debug, ops::RangeInclusive};
 #[cfg(feature = "std")]
 use std::alloc::alloc;
 
 use block_value::{BlockHeaderValue, BlockValue};
-
 use derive_more::Display;
 use events::FilterBox;
 use iroha_crypto::{Hash, PublicKey};
@@ -40,6 +38,7 @@ use iroha_schema::IntoSchema;
 use parity_scale_codec::{Decode, Encode};
 use prelude::TransactionQueryResult;
 use serde::{Deserialize, Serialize};
+use value::Value;
 
 use crate::{
     account::SignatureCheckCondition, name::Name, permissions::PermissionToken,

@@ -13,8 +13,7 @@ fn find_accounts_with_asset() -> Result<()> {
     wait_for_genesis_committed(&vec![test_client.clone()], 0);
 
     // Registering new asset definition
-    let definition_id =
-        <AssetDefinition as Identifiable>::Id::from_str("test_coin#wonderland")?;
+    let definition_id = <AssetDefinition as Identifiable>::Id::from_str("test_coin#wonderland")?;
     let asset_definition = AssetDefinition::quantity(definition_id.clone());
     test_client.submit_blocking(RegisterBox::new(asset_definition.clone()))?;
 

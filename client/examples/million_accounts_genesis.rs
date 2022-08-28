@@ -67,7 +67,10 @@ fn create_million_accounts_directly() {
     for i in 0_u32..1_000_000_u32 {
         let domain_id: DomainId = format!("wonderland-{}", i).parse().expect("Valid");
         let normal_account_id = {
-            let alias = Alias::new(format!("bob-{}", i).parse().expect("Valid"), domain_id.clone());
+            let alias = Alias::new(
+                format!("bob-{}", i).parse().expect("Valid"),
+                domain_id.clone(),
+            );
             let (public_key, _) = KeyPair::generate().expect("Valid").into();
             AccountId::new(public_key, alias)
         };

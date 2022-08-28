@@ -2,6 +2,7 @@
 
 use std::{str::FromStr as _, thread};
 
+use eyre::{Result, WrapErr as _};
 use iroha_client::client::{self, Client};
 use iroha_core::{prelude::*, smartcontracts::permissions::HasToken};
 use iroha_data_model::prelude::*;
@@ -10,7 +11,6 @@ use iroha_permissions_validators::{
     public_blockchain::{self, key_value::CanSetKeyValueInUserAssets},
 };
 use test_network::{PeerBuilder, *};
-use eyre::{Result, WrapErr as _};
 
 use super::Configuration;
 
@@ -30,7 +30,7 @@ fn permissions_require_registration_before_grant() -> eyre::Result<()> {
     // Given
     let alice_id = Alias::from_str("alice@wonderland")?.alice_key();
     let token = PermissionToken::new("can_do_stuff".parse()?);
-    
+
     let grant_permission = GrantBox::new(token.clone(), alice_id);
     let register_role = RegisterBox::new(
         Role::new("staff_that_does_stuff".parse().unwrap()).add_permission(token.clone()),
@@ -39,8 +39,8 @@ fn permissions_require_registration_before_grant() -> eyre::Result<()> {
     // We shouldn't be able to grant unregistered permission tokens
     // or roles containing unregistered permission tokens
     assert!(iroha_client
-            .submit_blocking(grant_permission.clone())
-            .is_err());
+        .submit_blocking(grant_permission.clone())
+        .is_err());
     assert!(iroha_client.submit_blocking(register_role.clone()).is_err());
 
     let register_permission = RegisterBox::new(PermissionTokenDefinition::new(
@@ -71,8 +71,7 @@ fn permissions_disallow_asset_transfer() -> eyre::Result<()> {
     let register_bob = RegisterBox::new(Account::from_id(bob_id.clone()));
 
     let alice_start_assets = get_assets(&mut iroha_client, &alice_id);
-    iroha_client
-        .submit_all(vec![create_asset.into(), register_bob.into()])?;
+    iroha_client.submit_all(vec![create_asset.into(), register_bob.into()])?;
     thread::sleep(pipeline_time * 2);
 
     let quantity: u32 = 200;
@@ -80,8 +79,7 @@ fn permissions_disallow_asset_transfer() -> eyre::Result<()> {
         Value::U32(quantity),
         IdBox::AssetId(AssetId::new(asset_definition_id.clone(), bob_id.clone())),
     );
-    iroha_client
-        .submit(mint_asset)?;
+    iroha_client.submit(mint_asset)?;
     thread::sleep(pipeline_time * 2);
 
     //When
@@ -184,20 +182,19 @@ fn account_can_query_only_its_own_domain() -> Result<()> {
     let new_domain_id: DomainId = "wonderland2".parse()?;
     let register_domain = RegisterBox::new(Domain::new(new_domain_id.clone()));
 
-    iroha_client
-        .submit(register_domain)?;
+    iroha_client.submit(register_domain)?;
 
     thread::sleep(pipeline_time * 2);
 
     // Alice can query the domain in which her account exists.
     assert!(iroha_client
-            .request(client::domain::by_id(domain_id))
-            .is_ok());
+        .request(client::domain::by_id(domain_id))
+        .is_ok());
 
     // Alice cannot query other domains.
     assert!(iroha_client
-            .request(client::domain::by_id(new_domain_id))
-            .is_err());
+        .request(client::domain::by_id(new_domain_id))
+        .is_err());
     Ok(())
 }
 
@@ -208,8 +205,8 @@ fn permissions_checked_before_transaction_execution() -> eyre::Result<()> {
     let instruction_judge = JudgeBuilder::with_validator(
         private_blockchain::register::GrantedAllowedRegisterDomains.into_validator(),
     )
-        .at_least_one_allow()
-        .build();
+    .at_least_one_allow()
+    .build();
 
     let (_rt, _not_drop, iroha_client) = <PeerBuilder>::new()
         .with_instruction_judge(Box::new(instruction_judge))
@@ -222,9 +219,7 @@ fn permissions_checked_before_transaction_execution() -> eyre::Result<()> {
             PermissionToken::from(private_blockchain::register::CanRegisterDomains::new()),
             IdBox::AccountId("alice@wonderland".parse::<Alias>()?.alice_key()),
         )),
-        Instruction::Register(RegisterBox::new(Domain::new(
-            "new_domain".parse()?,
-        ))),
+        Instruction::Register(RegisterBox::new(Domain::new("new_domain".parse()?))),
     ];
 
     let rejection_reason = iroha_client
@@ -243,8 +238,8 @@ fn permissions_differ_not_only_by_names() -> eyre::Result<()> {
         public_blockchain::key_value::AssetSetOnlyForSignerAccount
             .or(public_blockchain::key_value::SetGrantedByAssetOwner.into_validator()),
     )
-        .no_denies()
-        .build();
+    .no_denies()
+    .build();
 
     let (_rt, _not_drop, client) = <PeerBuilder>::new()
         .with_instruction_judge(Box::new(instruction_judge))
@@ -255,11 +250,9 @@ fn permissions_differ_not_only_by_names() -> eyre::Result<()> {
     let mouse_id = "mouse@wonderland".parse::<Alias>()?.fresh_key();
 
     // Registering `Store` asset definitions
-    let hat_definition_id: <AssetDefinition as Identifiable>::Id =
-        "hat#wonderland".parse()?;
+    let hat_definition_id: <AssetDefinition as Identifiable>::Id = "hat#wonderland".parse()?;
     let new_hat_definition = AssetDefinition::store(hat_definition_id.clone());
-    let shoes_definition_id: <AssetDefinition as Identifiable>::Id =
-        "shoes#wonderland".parse()?;
+    let shoes_definition_id: <AssetDefinition as Identifiable>::Id = "shoes#wonderland".parse()?;
     let new_shoes_definition = AssetDefinition::store(shoes_definition_id.clone());
     client
         .submit_all_blocking([

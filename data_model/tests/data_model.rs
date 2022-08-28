@@ -10,9 +10,10 @@ use iroha_core::{
 };
 use iroha_data_model::{prelude::*, ParseError};
 use iroha_primitives::small::SmallStr;
-use test_network::{prepare_test_for_nextest, Peer as TestPeer, PeerBuilder, TestRuntime};
+use test_network::{
+    prepare_test_for_nextest, FreshKeyTrait as _, Peer as TestPeer, PeerBuilder, TestRuntime,
+};
 use tokio::runtime::Runtime;
-use test_network::FreshKeyTrait as _;
 
 fn asset_id_new(
     definition_name: &str,
@@ -114,7 +115,7 @@ impl FindRateAndCheckItGreaterThanValue {
                             .expect("Valid"),
                         Alias::from_str("dex@exchange").expect("Valid").fresh_key(),
                     )))
-                        .into(),
+                    .into(),
                 ),
                 self.value,
             )),
@@ -122,7 +123,6 @@ impl FindRateAndCheckItGreaterThanValue {
         )
     }
 }
-
 
 #[test]
 fn find_rate_and_check_it_greater_than_value_predefined_isi_should_be_valid() {

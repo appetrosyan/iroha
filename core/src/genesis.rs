@@ -304,7 +304,7 @@ impl GenesisTransaction {
         limits: &TransactionLimits,
     ) -> Result<VersionedAcceptedTransaction> {
         let transaction = Transaction::new(
-            AccountId::genesis(),
+            Alias::genesis().key(genesis_key_pair.public_key().clone()),
             self.isi.clone().into(),
             GENESIS_TRANSACTIONS_TTL_MS,
         )

@@ -401,7 +401,9 @@ pub mod query {
             for domain in wsv.domains().iter() {
                 for account in domain.accounts() {
                     if let Some(ref alias) = account.id().alias {
-                        if alias.name == name { vec.push(account.clone()) }
+                        if alias.name == name {
+                            vec.push(account.clone())
+                        }
                     }
                 }
             }

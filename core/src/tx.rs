@@ -17,6 +17,7 @@ use std::sync::Arc;
 
 use eyre::{Result, WrapErr};
 use iroha_crypto::SignaturesOf;
+use iroha_data_model::account::SomeEquals as _;
 pub use iroha_data_model::prelude::*;
 use iroha_primitives::must_use::MustUse;
 use iroha_version::{declare_versioned_with_scale, version_with_scale};
@@ -114,10 +115,12 @@ impl TransactionValidator {
         // Therefore, this instruction execution validates before actually executing
         let wsv = WorldStateView::clone(&self.wsv);
 
-        let domain = account_id.domain_id().ok_or(TransactionRejectionReason::NotPermitted(NotPermittedFail {
-            reason: "Account not registered to any domain.".to_owned(),
-        }))?;
-                                                   
+        let domain = account_id
+            .domain_id()
+            .ok_or(TransactionRejectionReason::NotPermitted(NotPermittedFail {
+                reason: "Account not registered to any domain.".to_owned(),
+            }))?;
+
         if !wsv
             .domain(domain)
             .map_err(|_e| {
@@ -185,7 +188,7 @@ impl TransactionValidator {
         tx: &AcceptedTransaction,
         is_genesis: bool,
     ) -> Result<(), TransactionRejectionReason> {
-        if !is_genesis && tx.payload().account_id == AccountId::genesis() {
+        if !is_genesis && tx.payload().account_id.alias.some_equal(&Alias::genesis()) {
             return Err(TransactionRejectionReason::UnexpectedGenesisAccountSignature);
         }
 

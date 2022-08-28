@@ -1,12 +1,12 @@
 #![allow(clippy::restriction)]
 
+pub use core::str::FromStr as _;
+
 use eyre::Result;
 use iroha_client::client;
 use iroha_core::prelude::*;
 use iroha_data_model::prelude::*;
 use test_network::*;
-pub use core::str::FromStr as _;
-
 
 #[test]
 fn must_execute_both_triggers() -> Result<()> {

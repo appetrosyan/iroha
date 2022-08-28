@@ -41,7 +41,6 @@ fn add_register_domains_permission_allows_registering_account() {
 
 #[test]
 fn add_register_domains_permission_allows_registering_domain_with_right_token() {
-
     let alice_id = {
         let alias = Alias::from_str("alice@test0").expect("valid name");
         let (public_key, _) = KeyPair::generate().expect("Valid").into();

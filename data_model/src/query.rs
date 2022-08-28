@@ -18,7 +18,7 @@ use self::{
     trigger::*,
 };
 use crate::{
-    account::Account, pagination::Pagination, predicate::PredicateBox, Identifiable, value::Value,
+    account::Account, pagination::Pagination, predicate::PredicateBox, value::Value, Identifiable,
 };
 
 /// Sized container for all possible Queries.
@@ -534,8 +534,6 @@ pub mod account {
         type Output = AccountId;
     }
 
-
-
     /// [`FindAccountKeyValueByIdAndKey`] Iroha Query finds a [`Value`]
     /// of the key-value metadata pair in the specified account.
     #[derive(
@@ -662,7 +660,7 @@ pub mod account {
             let alias = id.into();
             Self { alias }
         }
-    }    
+    }
 
     impl FindAccountKeyValueByIdAndKey {
         /// Construct [`FindAccountById`].
@@ -705,8 +703,8 @@ pub mod account {
     /// The prelude re-exports most commonly used traits, structs and macros from this crate.
     pub mod prelude {
         pub use super::{
-            FindAccountById, FindAccountKeyValueByIdAndKey, FindAccountsByDomainId,
-            FindAccountsByName, FindAccountsWithAsset, FindAllAccounts, FindAccountIdByAlias
+            FindAccountById, FindAccountIdByAlias, FindAccountKeyValueByIdAndKey,
+            FindAccountsByDomainId, FindAccountsByName, FindAccountsWithAsset, FindAllAccounts,
         };
     }
 }
@@ -1387,7 +1385,7 @@ pub mod trigger {
     use super::Query;
     use crate::{
         domain::prelude::*, events::FilterBox, expression::EvaluatesTo, trigger::Trigger,
-        Identifiable, Name, value::Value,
+        value::Value, Identifiable, Name,
     };
 
     /// Find all currently active (as in not disabled and/or expired)

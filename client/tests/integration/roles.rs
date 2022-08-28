@@ -139,9 +139,7 @@ fn register_and_grant_role_for_metadata_access() -> Result<()> {
     let mouse_key_pair = KeyPair::generate()?;
 
     let mouse_id = Alias::from_str("mouse@wonderland")?.key(mouse_key_pair.public_key().clone());
-    let register_mouse = RegisterBox::new(Account::from_id(
-        mouse_id.clone(),
-    ));
+    let register_mouse = RegisterBox::new(Account::from_id(mouse_id.clone()));
     test_client.submit_blocking(register_mouse)?;
 
     // Registering role
@@ -179,7 +177,7 @@ fn unregistered_role_removed_from_account() -> Result<()> {
     wait_for_genesis_committed(&vec![test_client.clone()], 0);
 
     let role_id: <Role as Identifiable>::Id = "root".parse()?;
-    let alice_id  = "alice@wonderland".parse::<Alias>()?.alice_key();
+    let alice_id = "alice@wonderland".parse::<Alias>()?.alice_key();
     let mouse_id = "mouse@wonderland".parse::<Alias>()?.fresh_key();
 
     // Registering Mouse

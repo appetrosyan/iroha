@@ -47,8 +47,6 @@ impl TestEnv {
         };
         let mut alice = Account::from_id(alice_id.clone()).build();
 
-       
-
         let gold_asset_definition_id =
             AssetDefinitionId::from_str("gold#wonderland").expect("Valid");
         let gold_asset_id = AssetId::new(gold_asset_definition_id.clone(), alice_id.clone());
@@ -61,7 +59,7 @@ impl TestEnv {
             let (public_key, _) = KeyPair::generate().expect("Valid").into();
             AccountId::new(public_key, alias)
         };
-        
+
         let mut bob = Account::from_id(bob_id.clone()).build();
 
         let silver_asset_definition_id =
@@ -70,7 +68,6 @@ impl TestEnv {
         let silver_asset = Asset::new(silver_asset_id.clone(), AssetValue::Quantity(200));
 
         bob.add_asset(silver_asset);
-
 
         let carol_id = {
             let alias = Alias::from_str("alice@wonderland").expect("valid name");

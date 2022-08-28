@@ -8,7 +8,6 @@ use test_network::*;
 
 use super::Configuration;
 
-
 const N_BLOCKS: usize = 510;
 
 #[ignore = "Takes a lot of time."]
@@ -25,12 +24,11 @@ fn long_multiple_blocks_created() -> eyre::Result<()> {
     let asset_definition_id: AssetDefinitionId = "xor#domain".parse()?;
     let create_asset = RegisterBox::new(AssetDefinition::quantity(asset_definition_id.clone()));
 
-    iroha_client
-        .submit_all(vec![
-            create_domain.into(),
-            create_account.into(),
-            create_asset.into(),
-        ])?;
+    iroha_client.submit_all(vec![
+        create_domain.into(),
+        create_account.into(),
+        create_asset.into(),
+    ])?;
 
     thread::sleep(pipeline_time);
 
@@ -45,8 +43,7 @@ fn long_multiple_blocks_created() -> eyre::Result<()> {
                 account_id.clone(),
             )),
         );
-        iroha_client
-            .submit(mint_asset)?;
+        iroha_client.submit(mint_asset)?;
         account_has_quantity += quantity;
         thread::sleep(pipeline_time / 4);
     }
@@ -55,12 +52,14 @@ fn long_multiple_blocks_created() -> eyre::Result<()> {
 
     //Then
     let peer = network.peers().last().unwrap();
-    Client::test(&peer.api_address, &peer.telemetry_address)
-        .poll_request(client::asset::by_account_id(account_id), |result| {
+    Client::test(&peer.api_address, &peer.telemetry_address).poll_request(
+        client::asset::by_account_id(account_id),
+        |result| {
             result.iter().any(|asset| {
                 asset.id().definition_id == asset_definition_id
                     && *asset.value() == AssetValue::Quantity(account_has_quantity)
             })
-        })?;
+        },
+    )?;
     Ok(())
 }

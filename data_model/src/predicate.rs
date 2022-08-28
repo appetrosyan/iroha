@@ -221,8 +221,9 @@ pub mod string {
         use super::*;
 
         mod id_box {
-            use super::*;
             use iroha_crypto::KeyPair;
+
+            use super::*;
 
             #[test]
             fn simple_name_wrappers() {
@@ -770,8 +771,9 @@ pub mod value {
     #[cfg(test)]
     #[allow(clippy::print_stdout, clippy::use_debug, clippy::expect_used)]
     mod test {
-        use account::Alias;
         use core::str::FromStr as _;
+
+        use account::Alias;
         use iroha_crypto::KeyPair;
         use peer::Peer;
         use prelude::Metadata;

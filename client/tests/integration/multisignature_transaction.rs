@@ -33,7 +33,7 @@ fn multisignature_transactions_should_wait_for_all_signatures() -> eyre::Result<
                     key_pair_2.public_key().clone(),
                 ],
             )
-                .into(),
+            .into(),
         )),
         IdBox::AccountId(alice_id.clone()),
     );

@@ -12,7 +12,6 @@ use core::str::FromStr;
 #[cfg(feature = "std")]
 use std::alloc::alloc;
 
-pub use crate::ipfs::IpfsPath;
 use derive_more::{Display, FromStr};
 use getset::{Getters, MutGetters};
 use iroha_crypto::PublicKey;
@@ -22,12 +21,13 @@ use iroha_schema::IntoSchema;
 use parity_scale_codec::{Decode, Encode};
 use serde::{Deserialize, Serialize};
 
+pub use crate::ipfs::IpfsPath;
 use crate::{
     account::{genesis::Genesis as _, Account, AccountsMap},
     asset::AssetDefinitionsMap,
     ffi::ffi_item,
     metadata::Metadata,
-    prelude::{AssetDefinition, AssetDefinitionEntry},
+    prelude::{Alias, AssetDefinition, AssetDefinitionEntry},
     HasMetadata, Identifiable, Name, Registered,
 };
 
@@ -63,7 +63,7 @@ impl From<GenesisDomain> for Domain {
         Self {
             id: Id::from_str(GENESIS_DOMAIN_NAME).expect("Valid"),
             accounts: core::iter::once((
-                <Account as Identifiable>::Id::genesis(),
+                Alias::genesis().key(domain.genesis_key.clone()),
                 crate::account::genesis::GenesisAccount::new(domain.genesis_key).into(),
             ))
             .collect(),

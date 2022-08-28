@@ -140,7 +140,7 @@ impl Configuration {
             .expect("Public key not in mulithash format");
         AccountId {
             primary_key,
-            alias: None
+            alias: None,
         }
     }
 

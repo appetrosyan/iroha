@@ -153,7 +153,7 @@ impl<G: GenesisNetworkTrait> TestGenesis for G {
             RegisterBox::new(AssetDefinition::quantity(
                 AssetDefinitionId::from_str("rose#wonderland").expect("valid names"),
             ))
-                .into(),
+            .into(),
         );
         genesis.transactions[0]
             .isi
@@ -165,14 +165,14 @@ impl<G: GenesisNetworkTrait> TestGenesis for G {
             RegisterBox::new(AssetDefinition::quantity(
                 AssetDefinitionId::from_str("tulip#wonderland").expect("valid names"),
             ))
-                .into(),
+            .into(),
         );
         genesis.transactions[0].isi.push(
             MintBox::new(
                 Value::U32(13),
                 IdBox::AssetId(AssetId::new(rose_definition_id, alice_id)),
             )
-                .into(),
+            .into(),
         );
 
         configure_world();
@@ -183,7 +183,7 @@ impl<G: GenesisNetworkTrait> TestGenesis for G {
             &Some(cfg.genesis),
             &cfg.sumeragi.transaction_limits,
         )
-            .expect("Failed to init genesis")
+        .expect("Failed to init genesis")
     }
 }
 
@@ -278,7 +278,7 @@ where
             maximum_transactions_in_block,
             offline_peers,
         )
-            .await
+        .await
     }
 
     /// Adds peer to network and waits for it to start block
@@ -550,8 +550,8 @@ where
                     broker,
                     telemetry,
                 )
-                    .await
-                    .expect("Failed to start iroha");
+                .await
+                .expect("Failed to start iroha");
                 let job_handle = iroha.start_as_task().unwrap();
                 sender.send(iroha).unwrap();
                 job_handle.await.unwrap().unwrap();
@@ -723,7 +723,7 @@ where
             query_validator,
             temp_dir,
         )
-            .await;
+        .await;
     }
 
     /// Creates and starts a peer with preapplied arguments.
@@ -749,7 +749,7 @@ where
         time::sleep(Duration::from_millis(
             configuration.sumeragi.pipeline_time_ms(),
         ))
-            .await;
+        .await;
 
         (peer, client)
     }
@@ -843,7 +843,7 @@ pub trait TestClient: Sized {
     ) -> eyre::Result<R::Output>
     where
         R: ValidQuery + Into<QueryBox> + Debug + Clone,
-    <R::Output as TryFrom<Value>>::Error: Into<Error>,
+        <R::Output as TryFrom<Value>>::Error: Into<Error>,
         R::Output: Clone + Debug;
 
     /// Submits instructions with polling
@@ -858,7 +858,7 @@ pub trait TestClient: Sized {
     ) -> eyre::Result<R::Output>
     where
         R: ValidQuery + Into<QueryBox> + Debug + Clone,
-    <R::Output as TryFrom<Value>>::Error: Into<Error>,
+        <R::Output as TryFrom<Value>>::Error: Into<Error>,
         R::Output: Clone + Debug;
 
     /// Polls request till predicate `f` is satisfied, with default period and max attempts.
@@ -872,7 +872,7 @@ pub trait TestClient: Sized {
     ) -> eyre::Result<R::Output>
     where
         R: ValidQuery + Into<QueryBox> + Debug + Clone,
-    <R::Output as TryFrom<Value>>::Error: Into<Error>,
+        <R::Output as TryFrom<Value>>::Error: Into<Error>,
         R::Output: Clone + Debug;
 
     /// Polls request till predicate `f` is satisfied with `period` and `max_attempts` supplied.
@@ -888,7 +888,7 @@ pub trait TestClient: Sized {
     ) -> eyre::Result<R::Output>
     where
         R: ValidQuery + Into<QueryBox> + Debug + Clone,
-    <R::Output as TryFrom<Value>>::Error: Into<Error>,
+        <R::Output as TryFrom<Value>>::Error: Into<Error>,
         R::Output: Clone + Debug;
 }
 
@@ -1017,7 +1017,7 @@ impl TestClient for Client {
     ) -> eyre::Result<R::Output>
     where
         R: ValidQuery + Into<QueryBox> + Debug + Clone,
-    <R::Output as TryFrom<Value>>::Error: Into<Error>,
+        <R::Output as TryFrom<Value>>::Error: Into<Error>,
         R::Output: Clone + Debug,
     {
         self.submit(instruction)
@@ -1033,7 +1033,7 @@ impl TestClient for Client {
     ) -> eyre::Result<R::Output>
     where
         R: ValidQuery + Into<QueryBox> + Debug + Clone,
-    <R::Output as TryFrom<Value>>::Error: Into<Error>,
+        <R::Output as TryFrom<Value>>::Error: Into<Error>,
         R::Output: Clone + Debug,
     {
         self.submit_all(instructions)
@@ -1050,7 +1050,7 @@ impl TestClient for Client {
     ) -> eyre::Result<R::Output>
     where
         R: ValidQuery + Into<QueryBox> + Debug + Clone,
-    <R::Output as TryFrom<Value>>::Error: Into<Error>,
+        <R::Output as TryFrom<Value>>::Error: Into<Error>,
         R::Output: Clone + Debug,
     {
         let mut query_result = None;
@@ -1071,7 +1071,7 @@ impl TestClient for Client {
     ) -> eyre::Result<R::Output>
     where
         R: ValidQuery + Into<QueryBox> + Debug + Clone,
-    <R::Output as TryFrom<Value>>::Error: Into<Error>,
+        <R::Output as TryFrom<Value>>::Error: Into<Error>,
         R::Output: Clone + Debug,
     {
         self.poll_request_with_period(request, Configuration::pipeline_time() / 2, 10, f)

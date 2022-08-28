@@ -205,14 +205,19 @@ fn mint_nft_for_every_user_every_1_sec() -> Result<()> {
             "white_rabbit@wonderland".parse().expect("Valid"),
         ];
 
-        let keys = vec![1, 2, 3, 4].iter().map(|_| {
-            let (public_key, _) = KeyPair::generate().expect("Valid").into();
-            public_key
-        }).collect::<Vec<_>>();
+        let keys = vec![1, 2, 3, 4]
+            .iter()
+            .map(|_| {
+                let (public_key, _) = KeyPair::generate().expect("Valid").into();
+                public_key
+            })
+            .collect::<Vec<_>>();
 
-        let mut out = accounts.iter().zip(keys).map(|(alias, key)| {
-            <Account as Identifiable>::Id::new(key, alias.clone())
-        }).collect::<Vec<_>>();
+        let mut out = accounts
+            .iter()
+            .zip(keys)
+            .map(|(alias, key)| <Account as Identifiable>::Id::new(key, alias.clone()))
+            .collect::<Vec<_>>();
 
         out.insert(0, alice_id.clone());
         out
@@ -234,7 +239,7 @@ fn mint_nft_for_every_user_every_1_sec() -> Result<()> {
         env!("OUT_DIR"),
         "/wasm32-unknown-unknown/release/create_nft_for_every_user_smartcontract.wasm"
     ))
-        .wrap_err("Can't read smartcontract")?;
+    .wrap_err("Can't read smartcontract")?;
     println!("wasm size is {} bytes", wasm.len());
 
     // Registering trigger
@@ -263,7 +268,11 @@ fn mint_nft_for_every_user_every_1_sec() -> Result<()> {
     // Checking results
     for account_id in accounts {
         let start_pattern = "nft_number_";
-        let end_pattern = format!("_for_{}#{}", account_id.alias.as_ref().expect("Valid").name, account_id.domain_id().expect("Valid"));
+        let end_pattern = format!(
+            "_for_{}#{}",
+            account_id.alias.as_ref().expect("Valid").name,
+            account_id.domain_id().expect("Valid")
+        );
         let assets = test_client.request(client::asset::by_account_id(account_id.clone()))?;
         let count: u64 = assets
             .into_iter()
