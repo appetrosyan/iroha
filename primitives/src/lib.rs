@@ -46,7 +46,7 @@ impl IntoMetric for u32 {
 impl IntoMetric for Fixed {
     #[inline]
     fn into_metric(self) -> f64 {
-        self.into()
+        self.to_float_lossy()
     }
 }
 
@@ -90,11 +90,11 @@ impl CheckedOp for u128 {
 impl CheckedOp for Fixed {
     #[inline]
     fn checked_add(self, rhs: Self) -> Option<Self> {
-        self.checked_add(rhs).ok()
+        self.checked_add(rhs)
     }
 
     #[inline]
     fn checked_sub(self, rhs: Self) -> Option<Self> {
-        self.checked_sub(rhs).ok()
+        self.checked_sub(rhs)
     }
 }
